@@ -1,125 +1,473 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MainApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MainApp extends StatelessWidget {
+  const MainApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Socks & Frocks',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF795CAF),
+          primary: const Color(0xFF795CAF),
+          secondary: const Color(0xFF0FE3D5),
+          tertiary: const Color(0xFFF87E07),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomePage(),
+        '/tops': (context) => const ProductsPage(title: 'Tops'),
+        '/bottoms': (context) => const ProductsPage(title: 'Bottoms'),
+        '/outerwear': (context) => const ProductsPage(title: 'Outerwear'),
+        '/accessories': (context) => const ProductsPage(title: 'Accessories'),
+        '/login': (context) => const LoginPage(),
+        '/signup': (context) => const SignUpPage(),
+      },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
+
+  Widget buildLeftDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary, // Optional background color
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Adding logo from assets
+              Image.asset(
+                'assets/logo.PNG',  // Replace with your image path
+                height: 80,         // Adjust as needed
+              ),
+              const SizedBox(height: 10),  // Adds spacing below the logo
+              const Text(
+                'Menu',
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/');
+            },
+          ),
+          ExpansionTile(
+            leading: const Icon(Icons.category),
+            title: const Text('Collections'),
+            children: [
+              ListTile(
+                title: const Text('Tops'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/tops');
+                },
+              ),
+              ListTile(
+                title: const Text('Bottoms'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/bottoms');
+                },
+              ),
+              ListTile(
+                title: const Text('Outerwear'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/outerwear');
+                },
+              ),
+              ListTile(
+                title: const Text('Accessories'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/accessories');
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildRightDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary, // Optional background color
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Adding logo from assets
+              Image.asset(
+                'assets/logo.PNG',  // Replace with your image path
+                height: 80,         // Adjust as needed
+              ),
+              const SizedBox(height: 10),  // Adds spacing below the logo
+              const Text(
+                'Account',
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+          ListTile(
+            title: const Text('Login'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/login');
+            },
+          ),
+          ListTile(
+            title: const Text('Sign Up'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/signup');
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomePageState extends State<HomePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+ // Featured collections data
+  final List<Map<String, String>> featuredCollections = [
+    {'title': 'Tops', 'route': '/tops'},
+    {'title': 'Bottoms', 'route': '/bottoms'},
+    {'title': 'Outerwear', 'route': '/outerwear'},
+    {'title': 'Accessories', 'route': '/accessories'},
+    {'title': 'Sale', 'route': '/'},  // Example, update as needed
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        backgroundColor: colorScheme.primary,
+        title: const Text('Socks & Frocks', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () {
+            _scaffoldKey.currentState?.openDrawer();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {
+              _scaffoldKey.currentState?.openEndDrawer();
+            },
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      drawer: widget.buildLeftDrawer(context),
+      endDrawer: widget.buildRightDrawer(context),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search',
+                prefixIcon: Icon(Icons.search, color: colorScheme.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colorScheme.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+
+            //Creates the featured collections carousel
+            SizedBox(
+  height: 180,
+  child: ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: featuredCollections.length,
+    itemBuilder: (context, index) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.pushNamed(context, featuredCollections[index]['route']!);
+        },
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.all(8.0),
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Icon(Icons.image, size: 50, color: Colors.white),
+              ),
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              featuredCollections[index]['title']!,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      );
+    },
+  ),
+),
+
+
+
+
+            //creates the featured items carousel
+            const SizedBox(height: 20),
+            const Text('Featured Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 150,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: 5,
+                itemBuilder: (context, index) => Container(
+                  margin: const EdgeInsets.all(8.0),
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.image, size: 50, color: Colors.white),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class ProductsPage extends StatelessWidget {
+  final String title;
+
+  const ProductsPage({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: colorScheme.primary,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.person_outline, color: Colors.white),
+              onPressed: () {
+                Scaffold.of(context).openEndDrawer();
+              },
+            ),
+          ),
+        ],
+      ),
+      drawer: const HomePage().buildLeftDrawer(context),
+      endDrawer: const HomePage().buildRightDrawer(context),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                DropdownButton<String>(
+                  hint: const Text('Sort By'),
+                  items: ['Price', 'Popularity', 'Newest']
+                      .map((String value) => DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          ))
+                      .toList(),
+                  onChanged: (value) {},
+                ),
+                ElevatedButton(
+  onPressed: () {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Filter Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CheckboxListTile(
+                title: const Text('On Sale'),
+                value: false,
+                onChanged: (bool? value) {},
+              ),
+              CheckboxListTile(
+                title: const Text('New Arrivals'),
+                value: false,
+                onChanged: (bool? value) {},
+              ),
+              DropdownButton<String>(
+                hint: const Text('Category'),
+                items: ['Tops', 'Bottoms', 'Outerwear', 'Accessories']
+                    .map((String value) => DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        ))
+                    .toList(),
+                onChanged: (value) {},
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Apply filter logic
+                Navigator.pop(context);
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        );
+      },
+    );
+  },
+  child: const Text('Filter'),
+)
+
+              ],
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: 6,
+                itemBuilder: (context, index) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: Icon(Icons.image, size: 50)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              decoration: InputDecoration(labelText: 'Email', hintText: 'yourname@email.com'),
+            ),
+            TextField(
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+           ElevatedButton(
+  onPressed: () => Navigator.pop(context),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Theme.of(context).colorScheme.primary,  // Background color
+    foregroundColor: Colors.white,  // Text color
+  ),
+  child: const Text('Login'),
+)
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SignUpPage extends StatelessWidget {
+  const SignUpPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sign Up')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              decoration: InputDecoration(labelText: 'Email', hintText: 'yourname@email.com'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,  // Background color
+                foregroundColor: Colors.white,  // Text color
+              ),
+              child: const Text('Sign Up'),
+            )
+
+          ],
+        ),
+      ),
     );
   }
 }

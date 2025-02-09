@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  flutter_native_splash: ^2.4.4
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -56,6 +58,60 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/logo.PNG
+    - assets/placeholder.png
+    - assets/colorful_top.png
+    - assets/android_logo.png
+  
+  fonts:
+    - family: Jost-Black
+      fonts:
+        - asset: fonts/Jost-Black.ttf
+        - asset: fonts/Jost-BlackItalic.ttf
+          style: italic
+    - family: Jost-Bold
+      fonts: 
+        - asset: fonts/Jost-Bold.ttf
+        - asset: fonts/Jost-BoldItalic.ttf
+          style: italic
+    - family: Jost-ExtraBold
+      fonts: 
+        - asset: fonts/Jost-ExtraBold.ttf
+        - asset: fonts/Jost-ExtraBoldItalic.ttf
+          style: italic
+    - family: Jost-ExtraLight
+      fonts:
+        - asset: fonts/Jost-ExtraLight.ttf
+        - asset: fonts/Jost-ExtraLightItalic.ttf
+          style: italic
+    - family: Jost
+      fonts: 
+        - asset: fonts/Jost-Italic.ttf
+          style: italic
+    - family: Jost-Light
+      fonts: 
+        - asset: fonts/Jost-Light.ttf
+        - asset: fonts/Jost-LightItalic.ttf
+          style: italic
+    - family: Jost-Medium
+      fonts: 
+        - asset: fonts/Jost-Medium.ttf
+        - asset: fonts/Jost-MediumItalic.ttf
+          style: italic
+    - family: Jost-Regular
+      fonts: 
+        - asset: fonts/Jost-Regular.ttf
+    - family: Jost-SemiBold
+      fonts: 
+        - asset: fonts/Jost-SemiBold.ttf
+        - asset: fonts/Jost-SemiBoldItalic.ttf
+          style: italic
+    - family: Jost-Thin
+      fonts: 
+        - asset: fonts/Jost-Thin.ttf
+        - asset: fonts/Jost-ThinItalic.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
