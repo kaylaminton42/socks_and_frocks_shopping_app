@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:social_signin_buttons_plugin/social_signin_buttons_plugin.dart';
+import 'db_helper.dart';
 
 void main() {
   runApp(const MainApp());
@@ -33,6 +34,7 @@ class MainApp extends StatelessWidget {
         '/accessories': (context) => const ProductsPage(title: 'Accessories'),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
+        '/item': (context) => ItemListingPage(product: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>),
       },
     );
   }
@@ -238,136 +240,210 @@ child: ListView.builder(
   );
 }
 }
+//Products page here
 
-class ProductsPage extends StatelessWidget {
-final String title;
+class ProductsPage extends StatefulWidget {
+  final String title;
 
-const ProductsPage({super.key, required this.title});
+  const ProductsPage({super.key, required this.title});
 
-@override
-Widget build(BuildContext context) {
-  final colorScheme = Theme.of(context).colorScheme;
+  @override
+  ProductsPageState createState() => ProductsPageState();
+}
 
-  return Scaffold(
-    appBar: AppBar(
-      backgroundColor: colorScheme.primary,
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {
-            Scaffold.of(context).openDrawer();
-          },
-        ),
-      ),
-      actions: [
-        Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
+class ProductsPageState extends State<ProductsPage> {
+  List<Map<String, dynamic>> _products = [];
+  bool _isLoading = true;
+
+  Future<void> _fetchProducts() async {
+    _products = await DBHelper().getProductsByCategory(widget.title);
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: colorScheme.primary,
+        title: Text(widget.title, style: const TextStyle(color: Colors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
             onPressed: () {
-              Navigator.pushNamed(context, '/login');
+              // Add filter functionality here
             },
           ),
-        ),
-      ],
-    ),
-    drawer: const HomePage().buildLeftDrawer(context),
-    body: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              // Navigate to cart page
+            },
+          ),
+        ],
+      ),
+      drawer: const HomePage().buildLeftDrawer(context),
+      body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              DropdownButton<String>(
-                hint: const Text('Sort By'),
-                items: ['Price', 'Popularity', 'Newest']
-                    .map((String value) => DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        ))
-                    .toList(),
-                onChanged: (value) {},
-              ),
-              ElevatedButton(
-onPressed: () {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Filter Options'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+          // You can add a filter or search bar here if needed
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            
+          ),
+
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _products.isEmpty
+                    ? const Center(child: Text("No products available"))
+                    : Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: _products.length,
+                          itemBuilder: (context, index) {
+                            return _buildProductCard(context, _products[index]);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
+    return TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemListingPage(product: product),
+          ),
+        );
+      },
+      style: TextButton.styleFrom(padding: EdgeInsets.zero), // Removes extra padding
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 3,
+        color: Colors.white,
+        child: Column(
           children: [
-            CheckboxListTile(
-              title: const Text('On Sale'),
-              value: false,
-              onChanged: (bool? value) {},
+            Expanded(
+              child: Icon(Icons.image, size: 50, color: Theme.of(context).colorScheme.secondary), // Placeholder for image
             ),
-            CheckboxListTile(
-              title: const Text('New Arrivals'),
-              value: false,
-              onChanged: (bool? value) {},
-            ),
-            DropdownButton<String>(
-              hint: const Text('Category'),
-              items: ['Tops', 'Bottoms', 'Outerwear', 'Accessories']
-                  .map((String value) => DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      ))
-                  .toList(),
-              onChanged: (value) {},
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Text(
+                    product['productName'],
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
+                    style: TextStyle(color: Theme.of(context).colorScheme.tertiary, fontSize: 16),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Apply filter logic
-              Navigator.pop(context);
-            },
-            child: const Text('Apply'),
-          ),
-        ],
-      );
-    },
-  );
-},
-child: const Text('Filter'),
-)
+      ),
+    );
+  }
+  }
 
-            ],
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: 6,
-              itemBuilder: (context, index) => Container(
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.image, size: 50)),
+class ItemListingPage extends StatelessWidget {
+  final Map<String, dynamic> product;
+
+  const ItemListingPage({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(product['productName'])),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Placeholder for product image
+            Container(
+              height: 200,
+              width: double.infinity,
+              color: Colors.grey[300],
+              child: Center(
+                child: Icon(Icons.image, size: 80, color: Theme.of(context).colorScheme.secondary),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Product Name
+            Text(
+              product['productName'],
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Product Price
+            Text(
+              "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
+              style: TextStyle(fontSize: 20, color: Theme.of(context).colorScheme.tertiary),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Product Description
+            Text(
+              product['productDesc'],
+              style: const TextStyle(fontSize: 16),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Add to Cart Button
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Handle add to cart logic
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("${product['productName']} added to cart")),
+                  );
+                },
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text("Add to Cart"),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  textStyle: const TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class LoginPage extends StatelessWidget {
 const LoginPage({super.key});
+
 
 @override
 Widget build(BuildContext context) {
@@ -378,7 +454,7 @@ Widget build(BuildContext context) {
       child: Column(
         children: [
           TextField(
-            decoration: InputDecoration(labelText: 'Email', hintText: 'yourname@email.com'),
+            decoration: InputDecoration(labelText: 'Username', hintText: 'janesmith1'),
           ),
           TextField(
             decoration: InputDecoration(labelText: 'Password'),
@@ -393,23 +469,23 @@ Widget build(BuildContext context) {
             ),
             child: const Text('Login'),
           ),
+
+          Text('Don\'t have an account?'),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SignUpPage()),
+              );
+            },
+            child: const Text('Sign Up'),
+          )
           // Social sign in buttons
           // google
           // facebook
           //add some space
           // sign up button
-          SignInButton(
-            Buttons.Google,
-            onPressed: () => _handleGoogleSignIn(),
-            text: 'Sign in with Google',
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          ),
-          SignInButton(
-            Buttons.Facebook,
-            onPressed: () => _handleFacebookSignIn(),
-            text: 'Sign in with Facebook',
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          ),
+          
         ],
       ),
     ),
@@ -417,31 +493,146 @@ Widget build(BuildContext context) {
 }
 }
 
-class SignUpPage extends StatelessWidget {
+// The sign-up page that allows a user to create an account.
+class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
+
+  @override
+  State<SignUpPage> createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  // Global key to manage the form.
+  final _formKey = GlobalKey<FormState>();
+
+  // Controllers for the four text fields.
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController  = TextEditingController();
+  final TextEditingController _usernameController  = TextEditingController();
+  final TextEditingController _passwordController  = TextEditingController();
+
+  // Dummy in-memory "users database" to simulate saving user accounts.
+  final List<Map<String, String>> _usersDatabase = [];
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // This function simulates checking the database and saving the user if valid.
+  void _signUp() {
+    // First, validate that all fields are filled in appropriately.
+    if (_formKey.currentState!.validate()) {
+      // Check if a user with the same username already exists.
+      bool userExists = _usersDatabase.any(
+        (user) => user['username'] == _usernameController.text.trim(),
+      );
+
+      if (userExists) {
+        // Show an error message if the username is taken.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username already exists!')),
+        );
+        return;
+      }
+
+      // "Save" the user to the in-memory database.
+      _usersDatabase.add({
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'username': _usernameController.text.trim(),
+        'password': _passwordController.text, // In production, never store plain text!
+      });
+
+      // Navigate to the Login screen after a successful sign-up.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
+      appBar: AppBar(title: const Text('Create Account')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              decoration: InputDecoration(labelText: 'Email', hintText: 'yourname@email.com'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,  // Background color
-                foregroundColor: Colors.white,  // Text color
+        child: Form(
+          key: _formKey, // Assign the global key to the form.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _firstNameController,
+                decoration: const InputDecoration(
+                  labelText: 'First Name',
+                  hintText: 'Jane',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your first name';
+                  }
+                  return null;
+                },
               ),
-              child: const Text('Sign Up'),
-            )
-
-          ],
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Last Name',
+                  hintText: 'Smith',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your last name';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  hintText: 'janesmith1',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a username';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                ),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _signUp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sign Up'),
+              ),
+            ],
+          ),
         ),
       ),
     );
