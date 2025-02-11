@@ -466,11 +466,11 @@ class _LoginPageState extends State<LoginPage> {
 
   // Function to perform login.
   void _login() async {
-    final String username = _usernameController.text.trim();
+    final String userName = _usernameController.text.trim();
     final String password = _passwordController.text;
 
     final dbHelper = DBHelper();
-    final matchingUser = await dbHelper.getUserByCredentials(username, password);
+    final matchingUser = await dbHelper.getUserByCredentials(userName, password);
 
     // Search the dummy database for a matching user.
 
@@ -554,6 +554,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // The sign-up page that allows a user to create an account.
+
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -571,9 +572,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _usernameController  = TextEditingController();
   final TextEditingController _passwordController  = TextEditingController();
 
-  // Dummy in-memory "users database" to simulate saving user accounts.
-  final List<Map<String, String>> _usersDatabase = [];
-
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -583,16 +581,19 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  // This function simulates checking the database and saving the user if valid.
-  void _signUp() {
-    // First, validate that all fields are filled in appropriately.
+  // This function inserts the user into the database if valid.
+  void _signUp() async {
     if (_formKey.currentState!.validate()) {
-      // Check if a user with the same username already exists.
-      bool userExists = _usersDatabase.any(
-        (user) => user['username'] == _usernameController.text.trim(),
+      final dbHelper = DBHelper();
+      
+      // Optionally, you can check if a user with the same username already exists.
+      // Here, we perform a query using the username (ignoring password for uniqueness).
+      final existingUsers = await DBHelper.database.then((db) =>
+      db.query('users', where: 'userName = ?', whereArgs: [_usernameController.text.trim()])
       );
 
-      if (userExists) {
+      
+      if (existingUsers.isNotEmpty) {
         // Show an error message if the username is taken.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Username already exists!')),
@@ -600,13 +601,16 @@ class _SignUpPageState extends State<SignUpPage> {
         return;
       }
 
-      // "Save" the user to the in-memory database.
-      _usersDatabase.add({
+      // Prepare the user data with keys matching the database schema.
+      final newUser = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
-        'username': _usernameController.text.trim(),
+        'userName': _usernameController.text.trim(), // Note: 'userName' must match the column name in the database.
         'password': _passwordController.text, // In production, never store plain text!
-      });
+      };
+
+      // Insert the new user into the database.
+      await dbHelper.insertUser(newUser);
 
       // Navigate to the Login screen after a successful sign-up.
       Navigator.pushReplacement(

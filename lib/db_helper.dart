@@ -62,6 +62,25 @@ static Future<Database> _initDB() async {
   );
 }
 
+Future<int> insertUser(Map<String, dynamic> user) async {
+  final db = await database;
+  return await db.insert('users', user);
+}
+
+//Method to show users where the username and password match provided values
+Future<Map<String, dynamic>?> getUserByCredentials(String userName, String password) async {
+  final db = await DBHelper.database;
+  final List<Map<String, dynamic>> results = await db.query(
+    'users',
+    where: 'userName = ? AND password = ?',
+    whereArgs: [userName, password],
+  );
+  if (results.isNotEmpty) {
+    return results.first;
+  }
+  return null;
+}
+
 // Fetch products by category
   Future<List<Map<String, dynamic>>> getProductsByCategory(String category) async {
     final db = await database;
