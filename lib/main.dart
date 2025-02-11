@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:social_signin_buttons_plugin/social_signin_buttons_plugin.dart';
@@ -441,56 +443,114 @@ class ItemListingPage extends StatelessWidget {
   }
 }
 
-class LoginPage extends StatelessWidget {
-const LoginPage({super.key});
+/// The login page where the user enters their credentials.
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
-
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(title: const Text('Login')),
-    body: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          TextField(
-            decoration: InputDecoration(labelText: 'Username', hintText: 'janesmith1'),
-          ),
-          TextField(
-            decoration: InputDecoration(labelText: 'Password'),
-            obscureText: true,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,  // Background color
-            foregroundColor: Colors.white,  // Text color
-            ),
-            child: const Text('Login'),
-          ),
-
-          Text('Don\'t have an account?'),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SignUpPage()),
-              );
-            },
-            child: const Text('Sign Up'),
-          )
-          // Social sign in buttons
-          // google
-          // facebook
-          //add some space
-          // sign up button
-          
-        ],
-      ),
-    ),
-  );
+  @override
+  State<LoginPage> createState() => _LoginPageState();
 }
+
+class _LoginPageState extends State<LoginPage> {
+  // Controllers for username and password text fields.
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  // Clean up the controllers when the widget is disposed.
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Function to perform login.
+  void _login() async {
+    final String username = _usernameController.text.trim();
+    final String password = _passwordController.text;
+
+    final dbHelper = DBHelper();
+    final matchingUser = await dbHelper.getUserByCredentials(username, password);
+
+    // Search the dummy database for a matching user.
+
+    if (matchingUser != null) {
+      // If a matching user is found, navigate to the Profile screen.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    } else {
+      // If no match is found, show an error message.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username or password.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _usernameController,
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                hintText: 'janesmith1',
+              ),
+            ),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _login,
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary, // Background color
+                foregroundColor: Colors.white, // Text color
+              ),
+              child: const Text('Login'),
+            ),
+            const SizedBox(height: 20),
+            const Text("Don't have an account?"),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignUpPage()),
+                );
+              },
+              child: const Text('Sign Up'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A simple Profile screen that is shown upon successful login.
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: const Center(
+        child: Text('Welcome to your Profile!'),
+      ),
+    );
+  }
 }
 
 // The sign-up page that allows a user to create an account.
