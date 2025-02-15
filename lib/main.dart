@@ -37,6 +37,7 @@ class MainApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
         '/item': (context) => ItemListingPage(product: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>),
+        '/profile': (context) => throw UnimplementedError(), // Prevent direct navigation without userId
       },
     );
   }
@@ -466,27 +467,27 @@ class _LoginPageState extends State<LoginPage> {
 
   // Function to perform login.
   void _login() async {
-    final String userName = _usernameController.text.trim();
-    final String password = _passwordController.text;
+  final String userName = _usernameController.text.trim();
+  final String password = _passwordController.text;
 
-    final dbHelper = DBHelper();
-    final matchingUser = await dbHelper.getUserByCredentials(userName, password);
+  final dbHelper = DBHelper();
+  final matchingUser = await dbHelper.getUserByCredentials(userName, password);
 
-    // Search the dummy database for a matching user.
+  if (matchingUser != null) {
+    int userId = matchingUser['userID']; //  Extract user ID from database
 
-    if (matchingUser != null) {
-      // If a matching user is found, navigate to the Profile screen.
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      );
-    } else {
-      // If no match is found, show an error message.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid username or password.')),
-      );
-    }
+    //  Navigate to ProfileScreen and pass userId
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+    );
+  } else {
+    //  Show an error message if login fails
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invalid username or password.')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -538,20 +539,134 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// A simple Profile screen that is shown upon successful login.
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+/// The Profile screen that is shown upon successful login.
+class ProfileScreen extends StatefulWidget {
+  final int userId; // User ID passed from login
+
+  const ProfileScreen({super.key, required this.userId});
+
+  @override
+  ProfileScreenState createState() => ProfileScreenState();
+}
+
+class ProfileScreenState extends State<ProfileScreen> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final DBHelper _dbHelper = DBHelper();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Fetch user details when screen loads
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await _dbHelper.getUserById(widget.userId);
+    if (user != null) {
+      setState(() {
+        _usernameController.text = user['userName']; // Preload username
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    String newUsername = _usernameController.text.trim();
+    String newPassword = _passwordController.text.trim();
+
+    if (newUsername.isEmpty || newPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Username and password cannot be empty")),
+      );
+      return;
+    }
+
+    int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
+
+    if (result > 0) {
+      setState(() {}); // Refresh UI after update
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated successfully")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to update profile")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: const Center(
-        child: Text('Welcome to your Profile!'),
+      appBar: AppBar(
+        backgroundColor: colorScheme.primary,
+        title: const Text("Profile Settings", style: TextStyle(color: Colors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
+      drawer: const HomePage().buildLeftDrawer(context),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator()) // Show loading indicator
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Update Username",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      hintText: "Enter new username",
+                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Text("Update Password",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      hintText: "Enter new password",
+                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.lock),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 30),
+
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: _updateProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                      child: const Text("Save Changes"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
+
+
 
 // The sign-up page that allows a user to create an account.
 
