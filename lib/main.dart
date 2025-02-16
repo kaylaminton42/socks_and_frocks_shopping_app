@@ -4,13 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:social_signin_buttons_plugin/social_signin_buttons_plugin.dart';
 import 'db_helper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MainApp());
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final prefs = await SharedPreferences.getInstance();
+  final int? userId = prefs.getInt('userId');
+
+  runApp(MainApp(initialRoute: userId != null ? '/profile' : '/login', userId: userId));
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  final String initialRoute;
+  final int? userId;
+  
+  const MainApp({super.key, required this.initialRoute, this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +50,9 @@ class MainApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
         '/item': (context) => ItemListingPage(product: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>),
-        '/profile': (context) => throw UnimplementedError(), // Prevent direct navigation without userId
+        '/profile': (context) => userId != null ? ProfileScreen(userId: userId!) : const LoginPage(),
+        '/pastorders': (context) => PastOrdersScreen(userId: ModalRoute.of(context)!.settings.arguments as int),
+
       },
     );
   }
@@ -150,10 +165,18 @@ Widget build(BuildContext context) {
       actions: [
         IconButton(
           icon: const Icon(Icons.person_outline, color: Colors.white),
-          onPressed: () {
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final int? userId = prefs.getInt('userId');
+            if (userId != null) {
+              // User is logged in, go to the profile page
+              Navigator.pushNamed(context, '/profile', arguments: userId);
+            } else {
+              // No user is logged in, go to the login page
               Navigator.pushNamed(context, '/login');
+            }
           },
-        ),
+        )
       ],
     ),
     
@@ -476,6 +499,10 @@ class _LoginPageState extends State<LoginPage> {
   if (matchingUser != null) {
     int userId = matchingUser['userID']; //  Extract user ID from database
 
+    // Save the userId to shared_preferences so that we know the user is logged in
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('userId', userId);
+
     //  Navigate to ProfileScreen and pass userId
     Navigator.pushReplacement(
       context,
@@ -540,40 +567,326 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 /// The Profile screen that is shown upon successful login.
+// ====================================================
+// Parent Profile Screen with Tabs (Overview, Past Orders, Update Info)
+// ====================================================
 class ProfileScreen extends StatefulWidget {
   final int userId; // User ID passed from login
 
-  const ProfileScreen({super.key, required this.userId});
+  const ProfileScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
-  ProfileScreenState createState() => ProfileScreenState();
+  _ProfileScreenWithTabsState createState() => _ProfileScreenWithTabsState();
 }
 
-class ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenWithTabsState extends State<ProfileScreen> {
+  // Controllers for username and password (shared by tabs)
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final DBHelper _dbHelper = DBHelper();
+
+  // Used to greet the user by their first name
+  String _firstName = "";
   bool _isLoading = true;
+  final DBHelper _dbHelper = DBHelper();
+
+  // Shared avatar state variables
+  File? _avatar; // If user picks from camera/gallery
+  String? _selectedPreset; // If user picks one of the preset avatars
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // Fetch user details when screen loads
+    _loadUserData();
   }
 
+  // Loads user data from the database (to prefill username and get first name)
   Future<void> _loadUserData() async {
     final user = await _dbHelper.getUserById(widget.userId);
     if (user != null) {
       setState(() {
-        _usernameController.text = user['userName']; // Preload username
+        _usernameController.text = user['userName'];
+        _firstName = user['firstName'];
         _isLoading = false;
       });
+      // Call _loadAvatarState here so the saved avatar is loaded when the screen builds.
+    _loadAvatarState();
     }
   }
 
+  // Save the avatar state to shared_preferences
+  Future<void> _saveAvatarState({File? avatar, String? preset}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (avatar != null) {
+      await prefs.setString('avatarPath', avatar.path);
+      await prefs.remove('presetAvatar');
+    } else if (preset != null) {
+      await prefs.setString('presetAvatar', preset);
+      await prefs.remove('avatarPath');
+    } else {
+      // If neither is set, clear both.
+      await prefs.remove('avatarPath');
+      await prefs.remove('presetAvatar');
+    }
+  }
+
+  // Load the avatar state from shared_preferences and update our state.
+  Future<void> _loadAvatarState() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? avatarPath = prefs.getString('avatarPath');
+    String? preset = prefs.getString('presetAvatar');
+    setState(() {
+      if (avatarPath != null) {
+        _avatar = File(avatarPath);
+        _selectedPreset = null;
+      } else if (preset != null) {
+        _selectedPreset = preset;
+        _avatar = null;
+      }
+    });
+  }
+
+  // This callback is called from the Update Info tab when the avatar is changed.
+  // We update our shared state and then save it.
+  void _onAvatarUpdated({File? newAvatar, String? newPreset}) {
+    setState(() {
+      _avatar = newAvatar;
+      _selectedPreset = newPreset;
+    });
+    _saveAvatarState(avatar: newAvatar, preset: newPreset);
+  }
+
+
+  // ---------------------------
+  // LOGOUT FUNCTION
+  // ---------------------------
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId'); // Clear the stored login state
+    Navigator.pushReplacementNamed(context, '/login'); // Navigate to Login page
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DefaultTabController(
+      length: 3, // Three tabs: Overview, Past Orders, Update Info
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: colorScheme.primary,
+          title: Text("Hello, $_firstName!"),
+          actions: [
+            // Logout button now calls our _logout function.
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: _logout,
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: "Overview"),
+              Tab(text: "Past Orders"),
+              Tab(text: "Update Info"),
+            ],
+          ),
+        ),
+        drawer: const HomePage().buildLeftDrawer(context),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                children: [
+                  // Overview Tab: Displays current user info and avatar.
+                  ProfileOverviewContent(
+                    userId: widget.userId,
+                    // If a preset is chosen, use it; else if a file is chosen, use that; otherwise use default.
+                    avatar: _selectedPreset != null
+                        ? AssetImage(_selectedPreset!) as ImageProvider
+                        : (_avatar != null
+                            ? FileImage(_avatar!)
+                            : const AssetImage('assets/default_avatar.png')),
+                  ),
+                  // Past Orders Tab: Displays the user's past orders.
+                  PastOrdersContent(userId: widget.userId),
+                  // Update Info Tab: Allows updating username, password, and avatar.
+                  UpdateInfoContent(
+                    userId: widget.userId,
+                    usernameController: _usernameController,
+                    passwordController: _passwordController,
+                    onAvatarUpdated: _onAvatarUpdated,
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+// ====================================================
+// Overview Tab Widget: Displays current user info and avatar
+// ====================================================
+class ProfileOverviewContent extends StatelessWidget {
+  final int userId;
+  final ImageProvider avatar; // Shared avatar passed from parent
+
+  const ProfileOverviewContent({Key? key, required this.userId, required this.avatar})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use FutureBuilder to load user data from the database
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: DBHelper().getUserById(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Center(child: Text("No user data found."));
+        }
+        final user = snapshot.data!;
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Display the shared avatar
+              CircleAvatar(
+                radius: 50,
+                backgroundImage: avatar,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Hello, ${user['firstName']} ${user['lastName']}",
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Username: ${user['userName']}",
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ====================================================
+// Past Orders Tab Widget: Displays user's past orders
+// ====================================================
+class PastOrdersContent extends StatefulWidget {
+  final int userId;
+
+  const PastOrdersContent({Key? key, required this.userId}) : super(key: key);
+
+  @override
+  _PastOrdersContentState createState() => _PastOrdersContentState();
+}
+
+class _PastOrdersContentState extends State<PastOrdersContent> {
+  final DBHelper _dbHelper = DBHelper();
+  List<Map<String, dynamic>> _orders = [];
+  bool _isLoading = true;
+
+  Future<void> _fetchOrders() async {
+    final orders = await _dbHelper.getOrdersByUser(widget.userId);
+    setState(() {
+      _orders = orders;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _orders.isEmpty
+            ? const Center(child: Text("No past orders found."))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16.0),
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final order = _orders[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text("Order #${order['orderID']}"),
+                      subtitle: Text(
+                        "Date: ${order['orderDate']}\nTotal: \$${(order['orderTotal'] as num).toStringAsFixed(2)}",
+                      ),
+                      isThreeLine: true,
+                    ),
+                  );
+                },
+              );
+  }
+}
+
+// ====================================================
+// Update Info Tab Widget: Allows updating user info and avatar
+// ====================================================
+class UpdateInfoContent extends StatefulWidget {
+  final int userId;
+  final TextEditingController usernameController;
+  final TextEditingController passwordController;
+  final Function({File? newAvatar, String? newPreset}) onAvatarUpdated;
+
+  const UpdateInfoContent({
+    Key? key,
+    required this.userId,
+    required this.usernameController,
+    required this.passwordController,
+    required this.onAvatarUpdated,
+  }) : super(key: key);
+
+  @override
+  _UpdateInfoContentState createState() => _UpdateInfoContentState();
+}
+
+class _UpdateInfoContentState extends State<UpdateInfoContent> {
+  final DBHelper _dbHelper = DBHelper();
+  File? _avatar;
+  String? _selectedPreset;
+  final ImagePicker _picker = ImagePicker();
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  // List of preset avatar asset paths (adjust as needed)
+  final List<String> _presetAvatars = [
+    'assets/avatar1.jpg',
+    'assets/avatar2.jpg',
+    'assets/avatar3.jpg',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+  }
+
+  // Initialize local notifications for avatar updates
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
+    const InitializationSettings initSettings =
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
+    await _localNotificationsPlugin.initialize(initSettings);
+  }
+
+  // Update the user's info (username and password) in the database
   Future<void> _updateProfile() async {
-    String newUsername = _usernameController.text.trim();
-    String newPassword = _passwordController.text.trim();
+    String newUsername = widget.usernameController.text.trim();
+    String newPassword = widget.passwordController.text.trim();
 
     if (newUsername.isEmpty || newPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -585,7 +898,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
 
     if (result > 0) {
-      setState(() {}); // Refresh UI after update
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile updated successfully")),
       );
@@ -596,76 +909,275 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Pick an avatar image from the specified source (camera or gallery)
+  Future<void> _pickAvatarFromSource(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedPreset = null; // Clear preset if user picks a file
+        _avatar = File(pickedFile.path);
+      });
+      // Update parent's shared state with the new avatar file
+      widget.onAvatarUpdated(newAvatar: _avatar, newPreset: null);
+      _showAvatarNotification();
+    }
+  }
+
+  // Show a dialog with options: take photo, gallery, or choose preset avatar
+  Future<void> _showAvatarOptions() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select Avatar"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Option for taking a photo
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Take Photo"),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAvatarFromSource(ImageSource.camera);
+                },
+              ),
+              // Option for choosing from gallery
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text("Choose from Gallery"),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAvatarFromSource(ImageSource.gallery);
+                },
+              ),
+              // Option for choosing a preset avatar
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text("Choose Preset Avatar"),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showPresetAvatarsDialog();
+                },
+              ),
+            ],
+          ),
+          actions: [
+            // Cancel button to dismiss the dialog
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Show a dialog with a grid of preset avatars to choose from
+  Future<void> _showPresetAvatarsDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select a Preset Avatar"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              itemCount: _presetAvatars.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                final preset = _presetAvatars[index];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedPreset = preset;
+                      _avatar = null; // Clear any previously picked image
+                    });
+                    Navigator.of(context).pop();
+                    // Update parent's shared state with the preset asset path
+                    widget.onAvatarUpdated(newAvatar: null, newPreset: preset);
+                    _showAvatarNotification();
+                  },
+                  child: Image.asset(preset, fit: BoxFit.cover),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Show a local notification indicating the avatar was updated
+  Future<void> _showAvatarNotification() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'avatar_channel',
+      'Avatar Notifications',
+      channelDescription: 'Notification when avatar is updated',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails, iOS: iosDetails);
+    await _localNotificationsPlugin.show(
+      0,
+      'Avatar Updated',
+      'Your avatar has been updated!',
+      notificationDetails,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colorScheme.primary,
-        title: const Text("Profile Settings", style: TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar selection widget (tap to open avatar options)
+          Center(
+            child: InkWell(
+              onTap: _showAvatarOptions,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _selectedPreset != null
+                    ? AssetImage(_selectedPreset!)
+                    : _avatar != null
+                        ? FileImage(_avatar!)
+                        : const AssetImage('assets/default_avatar.png') as ImageProvider,
+                child: (_avatar == null && _selectedPreset == null)
+                    ? const Icon(Icons.camera_alt, size: 30, color: Colors.white)
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Username field
+          const Text(
+            "Update Username",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: widget.usernameController,
+            decoration: InputDecoration(
+              hintText: "Enter new username",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.person),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Password field
+          const Text(
+            "Update Password",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: widget.passwordController,
+            decoration: InputDecoration(
+              hintText: "Enter new password",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.lock),
+            ),
+            obscureText: true,
+          ),
+          const SizedBox(height: 30),
+          // Save Changes button
+          Center(
+            child: ElevatedButton(
+              onPressed: _updateProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text("Save Changes"),
+            ),
           ),
         ],
       ),
-      drawer: const HomePage().buildLeftDrawer(context),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Show loading indicator
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Update Username",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      hintText: "Enter new username",
-                      border: OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.person),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  const Text("Update Password",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      hintText: "Enter new password",
-                      border: OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.lock),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 30),
-
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _updateProfile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                        textStyle: const TextStyle(fontSize: 18),
-                      ),
-                      child: const Text("Save Changes"),
-                    ),
-                  ),
-                ],
-              ),
-            ),
     );
   }
 }
 
+
+// Past orders screen
+
+class PastOrdersScreen extends StatefulWidget {
+  final int userId;
+
+  const PastOrdersScreen({super.key, required this.userId});
+
+  @override
+  PastOrdersScreenState createState() => PastOrdersScreenState();
+}
+
+class PastOrdersScreenState extends State<PastOrdersScreen> {
+  final DBHelper _dbHelper = DBHelper();
+  List<Map<String, dynamic>> _orders = [];
+  bool _isLoading = true;
+
+  Future<void> _fetchOrders() async {
+    final orders = await _dbHelper.getOrdersByUser(widget.userId);
+    setState(() {
+      _orders = orders;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Past Orders"),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _orders.isEmpty
+              ? const Center(child: Text("No past orders found."))
+              : ListView.builder(
+                  itemCount: _orders.length,
+                  itemBuilder: (context, index) {
+                    final order = _orders[index];
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        title: Text("Order #${order['orderID']}"),
+                        subtitle: Text(
+                          "Date: ${order['orderDate']}\nTotal: \$${(order['orderTotal'] as num).toStringAsFixed(2)}",
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
 
 
 // The sign-up page that allows a user to create an account.

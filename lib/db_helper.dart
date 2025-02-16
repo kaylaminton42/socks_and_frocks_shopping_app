@@ -106,6 +106,18 @@ class DBHelper {
     );
   }
 
+// Fetch orders for a given user
+Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
+  final db = await database;
+  return db.query(
+    'orders',
+    where: 'userID = ?',
+    whereArgs: [userId],
+    orderBy: 'orderDate DESC', // Orders most recent first
+  );
+}
+
+
   // Delete user (optional: for account deletion)
   Future<int> deleteUser(int userId) async {
     final db = await database;

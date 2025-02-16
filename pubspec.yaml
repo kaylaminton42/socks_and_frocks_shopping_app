@@ -40,6 +40,10 @@ dependencies:
   sqflite: ^2.0.0+4       # Check for the latest version on pub.dev
   path_provider: ^2.0.11  # Helps you get the proper directory for storing the database
   path: ^1.8.2           # Used to work with file paths
+  image_picker: ^0.8.7+3
+  flutter_local_notifications: ^18.0.1
+  shared_preferences: ^2.0.15
+
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +72,9 @@ flutter:
     - assets/placeholder.png
     - assets/colorful_top.png
     - assets/android_logo.png
+    - assets/avatar1.jpg
+    - assets/avatar2.jpg
+    - assets/avatar3.jpg
   
   fonts:
     - family: Jost-Black
