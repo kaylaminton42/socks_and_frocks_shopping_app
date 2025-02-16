@@ -57,6 +57,67 @@ class MainApp extends StatelessWidget {
     );
   }
 }
+//Creates app bar that will be used across entire app
+class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  final List<Widget>? additionalActions;
+  final PreferredSizeWidget? bottom;
+
+  const CommonAppBar({
+    Key? key,
+    required this.title,
+    required this.scaffoldKey,
+    this.additionalActions,
+    this.bottom,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AppBar(
+      backgroundColor: colorScheme.primary,
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.white),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.menu, color: Colors.white),
+        onPressed: () {
+          scaffoldKey.currentState?.openDrawer();
+        },
+      ),
+      actions: [
+        // Home button - always available across the app.
+        IconButton(
+          icon: const Icon(Icons.home, color: Colors.white),
+          onPressed: () {
+            Navigator.pushNamed(context, '/');
+          },
+        ),
+        // Person icon: goes to profile if logged in, login if not.
+        IconButton(
+          icon: const Icon(Icons.person_outline, color: Colors.white),
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final int? userId = prefs.getInt('userId');
+            if (userId != null) {
+              Navigator.pushNamed(context, '/profile', arguments: userId);
+            } else {
+              Navigator.pushNamed(context, '/login');
+            }
+          },
+        ),
+        // Any additional actions passed in.
+        if (additionalActions != null) ...additionalActions!,
+      ],
+      bottom: bottom,
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -153,31 +214,9 @@ Widget build(BuildContext context) {
 
   return Scaffold(
     key: _scaffoldKey,
-    appBar: AppBar(
-      backgroundColor: colorScheme.primary,
-      title: const Text('Socks & Frocks', style: TextStyle(color: Colors.white)),
-      leading: IconButton(
-        icon: const Icon(Icons.menu, color: Colors.white),
-        onPressed: () {
-          _scaffoldKey.currentState?.openDrawer();
-        },
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline, color: Colors.white),
-          onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            final int? userId = prefs.getInt('userId');
-            if (userId != null) {
-              // User is logged in, go to the profile page
-              Navigator.pushNamed(context, '/profile', arguments: userId);
-            } else {
-              // No user is logged in, go to the login page
-              Navigator.pushNamed(context, '/login');
-            }
-          },
-        )
-      ],
+    appBar: CommonAppBar(
+      title: 'Socks & Frocks',
+      scaffoldKey: _scaffoldKey, // Pass the key here
     ),
     
     drawer: widget.buildLeftDrawer(context),
@@ -201,42 +240,39 @@ Widget build(BuildContext context) {
 
           //Creates the featured collections carousel
           SizedBox(
-height: 180,
-child: ListView.builder(
-  scrollDirection: Axis.horizontal,
-  itemCount: featuredCollections.length,
-  itemBuilder: (context, index) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, featuredCollections[index]['route']!);
-      },
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(8.0),
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(12),
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: featuredCollections.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, featuredCollections[index]['route']!);
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.all(8.0),
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.image, size: 50, color: Colors.white),
+                        ),
+                      ),
+                      Text(
+                        featuredCollections[index]['title']!,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            child: const Center(
-              child: Icon(Icons.image, size: 50, color: Colors.white),
             ),
-          ),
-          Text(
-            featuredCollections[index]['title']!,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  },
-),
-),
-
-
-
 
           //creates the featured items carousel
           const SizedBox(height: 20),
@@ -296,27 +332,15 @@ class ProductsPageState extends State<ProductsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    //final colorScheme = Theme.of(context).colorScheme;
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colorScheme.primary,
-        title: Text(widget.title, style: const TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // Add filter functionality here
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              // Navigate to cart page
-            },
-          ),
-        ],
-      ),
+      appBar: CommonAppBar(
+      title: 'Socks & Frocks',
+      scaffoldKey: _scaffoldKey, // Pass the key here
+    ),
       drawer: const HomePage().buildLeftDrawer(context),
       body: Column(
         children: [
@@ -396,13 +420,19 @@ class ProductsPageState extends State<ProductsPage> {
 
 class ItemListingPage extends StatelessWidget {
   final Map<String, dynamic> product;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  const ItemListingPage({super.key, required this.product});
+
+  ItemListingPage({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(product['productName'])),
+      key: _scaffoldKey,
+      appBar: CommonAppBar(
+        title: product['productName'],
+        scaffoldKey: _scaffoldKey, // Pass the key here
+        ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -479,6 +509,8 @@ class _LoginPageState extends State<LoginPage> {
   // Controllers for username and password text fields.
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
 
   // Clean up the controllers when the widget is disposed.
   @override
@@ -519,7 +551,10 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: CommonAppBar(
+      title: 'Login',
+      scaffoldKey: _scaffoldKey, // Pass the key here
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -572,8 +607,7 @@ class _LoginPageState extends State<LoginPage> {
 // ====================================================
 class ProfileScreen extends StatefulWidget {
   final int userId; // User ID passed from login
-
-  const ProfileScreen({Key? key, required this.userId}) : super(key: key);
+  ProfileScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
   _ProfileScreenWithTabsState createState() => _ProfileScreenWithTabsState();
@@ -648,6 +682,7 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
   // This callback is called from the Update Info tab when the avatar is changed.
   // We update our shared state and then save it.
   void _onAvatarUpdated({File? newAvatar, String? newPreset}) {
+    print("Avatar updated: newAvatar = $newAvatar, newPreset = $newPreset");
     setState(() {
       _avatar = newAvatar;
       _selectedPreset = newPreset;
@@ -668,47 +703,55 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    //final colorScheme = Theme.of(context).colorScheme;
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
 
     return DefaultTabController(
       length: 3, // Three tabs: Overview, Past Orders, Update Info
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: colorScheme.primary,
-          title: Text("Hello, $_firstName!"),
-          actions: [
-            // Logout button now calls our _logout function.
+        key: _scaffoldKey,
+        appBar: CommonAppBar(
+          title: "Hello, $_firstName!",
+          scaffoldKey: _scaffoldKey,
+          additionalActions: [
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               onPressed: _logout,
             ),
           ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: "Overview"),
-              Tab(text: "Past Orders"),
-              Tab(text: "Update Info"),
-            ],
-          ),
         ),
         drawer: const HomePage().buildLeftDrawer(context),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
+        body: Column(
+          children: [
+            // This TabBar is placed below the AppBar
+            TabBar(
+              //backgroundColor: Theme.of(context).colorScheme.primary,
+              labelColor: Theme.of(context).colorScheme.tertiary,
+              unselectedLabelColor: Theme.of(context).colorScheme.primary,
+              indicatorColor: Colors.white,
+              tabs: [
+                Tab(text: "Overview"),
+                Tab(text: "Past Orders"),
+                Tab(text: "Update Info"),
+              ],
+            ),
+            // Expanded widget ensures the TabBarView takes the remaining space
+            Expanded(
+              child: TabBarView(
                 children: [
-                  // Overview Tab: Displays current user info and avatar.
+                  // Overview Tab
                   ProfileOverviewContent(
                     userId: widget.userId,
-                    // If a preset is chosen, use it; else if a file is chosen, use that; otherwise use default.
                     avatar: _selectedPreset != null
-                        ? AssetImage(_selectedPreset!) as ImageProvider
-                        : (_avatar != null
-                            ? FileImage(_avatar!)
-                            : const AssetImage('assets/default_avatar.png')),
+                      ? AssetImage(_selectedPreset!) as ImageProvider
+                      : (_avatar != null
+                          ? FileImage(_avatar!)
+                          : const AssetImage('assets/default_avatar.png')),
                   ),
-                  // Past Orders Tab: Displays the user's past orders.
+                  // Past Orders Tab
                   PastOrdersContent(userId: widget.userId),
-                  // Update Info Tab: Allows updating username, password, and avatar.
+                  // Update Info Tab
                   UpdateInfoContent(
                     userId: widget.userId,
                     usernameController: _usernameController,
@@ -717,8 +760,12 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
       ),
     );
+
   }
 }
 
@@ -885,29 +932,35 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
 
   // Update the user's info (username and password) in the database
   Future<void> _updateProfile() async {
-    String newUsername = widget.usernameController.text.trim();
-    String newPassword = widget.passwordController.text.trim();
+  // Get the new values entered by the user
+  String newUsername = widget.usernameController.text.trim();
+  String newPassword = widget.passwordController.text.trim();
 
-    if (newUsername.isEmpty || newPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Username and password cannot be empty")),
-      );
-      return;
-    }
+  // Retrieve current user data from the database
+  final currentUser = await _dbHelper.getUserById(widget.userId);
 
-    int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
-
-    if (result > 0) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update profile")),
-      );
-    }
+  // If a field is left empty, use the current value
+  if (newUsername.isEmpty) {
+    newUsername = currentUser?['userName'] ?? "";
   }
+  if (newPassword.isEmpty) {
+    newPassword = currentUser?['password'] ?? "";
+  }
+
+  // Update the user data in the database
+  int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
+
+  if (result > 0) {
+    setState(() {}); // Refresh the UI if needed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Profile updated successfully")),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to update profile")),
+    );
+  }
+}
 
   // Pick an avatar image from the specified source (camera or gallery)
   Future<void> _pickAvatarFromSource(ImageSource source) async {
@@ -978,43 +1031,48 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
 
   // Show a dialog with a grid of preset avatars to choose from
   Future<void> _showPresetAvatarsDialog() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Select a Preset Avatar"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: GridView.builder(
-              shrinkWrap: true,
-              itemCount: _presetAvatars.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemBuilder: (context, index) {
-                final preset = _presetAvatars[index];
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedPreset = preset;
-                      _avatar = null; // Clear any previously picked image
-                    });
-                    Navigator.of(context).pop();
-                    // Update parent's shared state with the preset asset path
-                    widget.onAvatarUpdated(newAvatar: null, newPreset: preset);
-                    _showAvatarNotification();
-                  },
-                  child: Image.asset(preset, fit: BoxFit.cover),
-                );
-              },
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Select a Preset Avatar"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: GridView.builder(
+            shrinkWrap: true,
+            itemCount: _presetAvatars.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
+            itemBuilder: (context, index) {
+              final preset = _presetAvatars[index];
+              return GestureDetector(
+                onTap: () {
+                  // Debug print to verify the preset is selected
+                  print("Preset selected: $preset");
+                  setState(() {
+                    _selectedPreset = preset;
+                    _avatar = null; // Clear any previously picked image
+                  });
+                  Navigator.of(context).pop();
+                  // Update parent's shared state with the preset asset path
+                  widget.onAvatarUpdated(newAvatar: null, newPreset: preset);
+                  _showAvatarNotification();
+                },
+                child: Image.asset(
+                  preset,
+                  fit: BoxFit.cover,
+                ),
+              );
+            },
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   // Show a local notification indicating the avatar was updated
   Future<void> _showAvatarNotification() async {
@@ -1151,9 +1209,12 @@ class PastOrdersScreenState extends State<PastOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Past Orders"),
+      appBar: CommonAppBar(
+        title: "Past Orders",
+        scaffoldKey: _scaffoldKey, // Pass the key here
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -1249,8 +1310,14 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: CommonAppBar(
+        title: 'Create Account',
+        scaffoldKey: _scaffoldKey, // Pass the key here
+        ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
