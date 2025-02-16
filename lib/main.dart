@@ -9,20 +9,21 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   final prefs = await SharedPreferences.getInstance();
   final int? userId = prefs.getInt('userId');
 
-  runApp(MainApp(initialRoute: userId != null ? '/profile' : '/login', userId: userId));
+  runApp(MainApp(
+    initialRoute: userId != null ? '/profile' : '/login',
+    userId: userId,
+  ));
 }
 
 class MainApp extends StatelessWidget {
   final String initialRoute;
   final int? userId;
-  
+
   const MainApp({super.key, required this.initialRoute, this.userId});
 
   @override
@@ -37,9 +38,10 @@ class MainApp extends StatelessWidget {
           tertiary: const Color(0xFFF87E07),
           brightness: Brightness.light,
         ),
-
         useMaterial3: true,
       ),
+      // Wrap all pages with an OrientationWrapper
+      builder: (context, child) => OrientationWrapper(child: child!),
       initialRoute: '/',
       routes: {
         '/': (context) => const HomePage(),
@@ -49,15 +51,37 @@ class MainApp extends StatelessWidget {
         '/accessories': (context) => const ProductsPage(title: 'Accessories'),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
-        '/item': (context) => ItemListingPage(product: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>),
-        '/profile': (context) => userId != null ? ProfileScreen(userId: userId!) : const LoginPage(),
-        '/pastorders': (context) => PastOrdersScreen(userId: ModalRoute.of(context)!.settings.arguments as int),
-
+        '/item': (context) => ItemListingPage(
+              product: ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>,
+            ),
+        '/profile': (context) =>
+            userId != null ? ProfileScreen(userId: userId!) : const LoginPage(),
+        '/pastorders': (context) => PastOrdersScreen(
+              userId: ModalRoute.of(context)!.settings.arguments as int,
+            ),
       },
     );
   }
 }
-//Creates app bar that will be used across entire app
+
+/// A common wrapper that uses OrientationBuilder so that each page can react to orientation.
+class OrientationWrapper extends StatelessWidget {
+  final Widget child;
+  const OrientationWrapper({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        // Customize layout based on orientation if needed.
+        return child;
+      },
+    );
+  }
+}
+
+/// Creates an app bar to be used across the entire app.
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -88,14 +112,14 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
         },
       ),
       actions: [
-        // Home button - always available across the app.
+        // Home button
         IconButton(
           icon: const Icon(Icons.home, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/');
           },
         ),
-        // Person icon: goes to profile if logged in, login if not.
+        // Profile/Login button
         IconButton(
           icon: const Icon(Icons.person_outline, color: Colors.white),
           onPressed: () async {
@@ -108,7 +132,6 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
         ),
-        // Any additional actions passed in.
         if (additionalActions != null) ...additionalActions!,
       ],
       bottom: bottom,
@@ -116,39 +139,38 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+/// A common Navigation Drawer used by every page.
+class NavigationDrawer extends StatelessWidget {
+  const NavigationDrawer({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-
-  Widget buildLeftDrawer(BuildContext context) {
+  Widget build(BuildContext context) {
     return Drawer(
       child: ListView(
         children: [
           DrawerHeader(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary, // Optional background color
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/logo.PNG', // Adjust the path if needed
+                  height: 80,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Menu',
+                  style: TextStyle(fontSize: 24, color: Colors.white),
+                ),
+              ],
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Adding logo from assets
-              Image.asset(
-                'assets/logo.PNG',  // Replace with your image path
-                height: 80,         // Adjust as needed
-              ),
-              const SizedBox(height: 10),  // Adds spacing below the logo
-              const Text(
-                'Menu',
-                style: TextStyle(fontSize: 24, color: Colors.white),
-              ),
-            ],
-          ),
-        ),
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text('Home'),
@@ -196,117 +218,146 @@ class HomePage extends StatefulWidget {
     );
   }
 }
+
+/// -------------------- HOME PAGE --------------------
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+
+  // Use NavigationDrawer for consistency.
+  Widget buildLeftDrawer(BuildContext context) => const NavigationDrawer();
+}
+
 class _HomePageState extends State<HomePage> {
-final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-// Featured collections data
-final List<Map<String, String>> featuredCollections = [
-  {'title': 'Tops', 'route': '/tops'},
-  {'title': 'Bottoms', 'route': '/bottoms'},
-  {'title': 'Outerwear', 'route': '/outerwear'},
-  {'title': 'Accessories', 'route': '/accessories'},
-  {'title': 'Sale', 'route': '/'},  // Example, update as needed
-];
+  // Sample featured collections.
+  final List<Map<String, String>> featuredCollections = [
+    {'title': 'Tops', 'route': '/tops'},
+    {'title': 'Bottoms', 'route': '/bottoms'},
+    {'title': 'Outerwear', 'route': '/outerwear'},
+    {'title': 'Accessories', 'route': '/accessories'},
+    {'title': 'Sale', 'route': '/'}, // Example.
+  ];
 
-@override
-Widget build(BuildContext context) {
-  final colorScheme = Theme.of(context).colorScheme;
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final orientation = MediaQuery.of(context).orientation;
 
-  return Scaffold(
-    key: _scaffoldKey,
-    appBar: CommonAppBar(
-      title: 'Socks & Frocks',
-      scaffoldKey: _scaffoldKey, // Pass the key here
-    ),
-    
-    drawer: widget.buildLeftDrawer(context),
-    body: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Search',
-              prefixIcon: Icon(Icons.search, color: colorScheme.primary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.primary),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
+    // Adjust carousel heights and spacing.
+    final double firstCarouselHeight = orientation == Orientation.portrait ? 180 : 160;
+    final double secondCarouselHeight = orientation == Orientation.portrait ? 180 : 160;
+    final double extraSpacing = orientation == Orientation.portrait ? 20 : 10;
 
-
-          //Creates the featured collections carousel
-          SizedBox(
-            height: 180,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: featuredCollections.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, featuredCollections[index]['route']!);
-                  },
-                  child: Column(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.all(8.0),
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.image, size: 50, color: Colors.white),
-                        ),
-                      ),
-                      Text(
-                        featuredCollections[index]['title']!,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ),
-
-          //creates the featured items carousel
-          const SizedBox(height: 20),
-          const Text('Featured Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 150,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 5,
-              itemBuilder: (context, index) => Container(
-                margin: const EdgeInsets.all(8.0),
-                width: 120,
-                decoration: BoxDecoration(
-                  color: colorScheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Icon(Icons.image, size: 50, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: CommonAppBar(
+        title: 'Socks & Frocks',
+        scaffoldKey: _scaffoldKey,
       ),
-    ),
-  );
+      drawer: const NavigationDrawer(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar.
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search',
+                prefixIcon: Icon(Icons.search, color: colorScheme.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colorScheme.primary),
+                ),
+              ),
+            ),
+            SizedBox(height: extraSpacing),
+            // Featured Collections carousel.
+            SizedBox(
+              height: firstCarouselHeight,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: featuredCollections.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        featuredCollections[index]['route']!,
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(8.0),
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          featuredCollections[index]['title']!,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: extraSpacing * 2),
+            // Featured Items label.
+            const Text(
+              'Featured Items',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            // Featured Items carousel.
+            SizedBox(
+              height: secondCarouselHeight,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: 5,
+                itemBuilder: (context, index) => Container(
+                  margin: const EdgeInsets.all(8.0),
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.image,
+                      size: 50,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
-}
-//Products page here
 
+/// -------------------- PRODUCTS PAGE --------------------
 class ProductsPage extends StatefulWidget {
   final String title;
-
   const ProductsPage({super.key, required this.title});
 
   @override
@@ -314,6 +365,7 @@ class ProductsPage extends StatefulWidget {
 }
 
 class ProductsPageState extends State<ProductsPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _products = [];
   bool _isLoading = true;
 
@@ -332,24 +384,20 @@ class ProductsPageState extends State<ProductsPage> {
 
   @override
   Widget build(BuildContext context) {
-    //final colorScheme = Theme.of(context).colorScheme;
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
+    final orientation = MediaQuery.of(context).orientation;
+    final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
+    final double childAspect = orientation == Orientation.portrait ? 0.75 : 0.9;
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: CommonAppBar(
-      title: 'Socks & Frocks',
-      scaffoldKey: _scaffoldKey, // Pass the key here
-    ),
-      drawer: const HomePage().buildLeftDrawer(context),
+        title: 'Socks & Frocks',
+        scaffoldKey: _scaffoldKey,
+      ),
+      drawer: const NavigationDrawer(),
       body: Column(
         children: [
-          // You can add a filter or search bar here if needed
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            
-          ),
-
+          const Padding(padding: EdgeInsets.all(16.0)),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -358,10 +406,11 @@ class ProductsPageState extends State<ProductsPage> {
                     : Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
+                            childAspectRatio: childAspect,
                           ),
                           itemCount: _products.length,
                           itemBuilder: (context, index) {
@@ -385,15 +434,23 @@ class ProductsPageState extends State<ProductsPage> {
           ),
         );
       },
-      style: TextButton.styleFrom(padding: EdgeInsets.zero), // Removes extra padding
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 3,
         color: Colors.white,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Icon(Icons.image, size: 50, color: Theme.of(context).colorScheme.secondary), // Placeholder for image
+            SizedBox(
+              height: 80,
+              child: Center(
+                child: Icon(
+                  Icons.image,
+                  size: 50,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -404,9 +461,13 @@ class ProductsPageState extends State<ProductsPage> {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 6),
                   Text(
                     "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
-                    style: TextStyle(color: Theme.of(context).colorScheme.tertiary, fontSize: 16),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.tertiary,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -416,12 +477,12 @@ class ProductsPageState extends State<ProductsPage> {
       ),
     );
   }
-  }
+}
 
+/// -------------------- ITEM LISTING PAGE --------------------
 class ItemListingPage extends StatelessWidget {
   final Map<String, dynamic> product;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
 
   ItemListingPage({super.key, required this.product});
 
@@ -431,53 +492,45 @@ class ItemListingPage extends StatelessWidget {
       key: _scaffoldKey,
       appBar: CommonAppBar(
         title: product['productName'],
-        scaffoldKey: _scaffoldKey, // Pass the key here
-        ),
+        scaffoldKey: _scaffoldKey,
+      ),
+      drawer: const NavigationDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Placeholder for product image
             Container(
               height: 200,
               width: double.infinity,
               color: Colors.grey[300],
               child: Center(
-                child: Icon(Icons.image, size: 80, color: Theme.of(context).colorScheme.secondary),
+                child: Icon(
+                  Icons.image,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Product Name
             Text(
               product['productName'],
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 8),
-
-            // Product Price
             Text(
               "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
               style: TextStyle(fontSize: 20, color: Theme.of(context).colorScheme.tertiary),
             ),
-
             const SizedBox(height: 16),
-
-            // Product Description
             Text(
               product['productDesc'],
               style: const TextStyle(fontSize: 16),
             ),
-
             const SizedBox(height: 24),
-
-            // Add to Cart Button
             Center(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // Handle add to cart logic
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("${product['productName']} added to cart")),
                   );
@@ -497,7 +550,7 @@ class ItemListingPage extends StatelessWidget {
   }
 }
 
-/// The login page where the user enters their credentials.
+/// -------------------- LOGIN PAGE --------------------
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -506,13 +559,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controllers for username and password text fields.
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-
-  // Clean up the controllers when the widget is disposed.
   @override
   void dispose() {
     _usernameController.dispose();
@@ -520,41 +570,38 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Function to perform login.
   void _login() async {
-  final String userName = _usernameController.text.trim();
-  final String password = _passwordController.text;
+    final String userName = _usernameController.text.trim();
+    final String password = _passwordController.text;
 
-  final dbHelper = DBHelper();
-  final matchingUser = await dbHelper.getUserByCredentials(userName, password);
+    final dbHelper = DBHelper();
+    final matchingUser = await dbHelper.getUserByCredentials(userName, password);
 
-  if (matchingUser != null) {
-    int userId = matchingUser['userID']; //  Extract user ID from database
+    if (matchingUser != null) {
+      int userId = matchingUser['userID'];
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('userId', userId);
 
-    // Save the userId to shared_preferences so that we know the user is logged in
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('userId', userId);
-
-    //  Navigate to ProfileScreen and pass userId
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
-    );
-  } else {
-    //  Show an error message if login fails
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invalid username or password.')),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => ProfileScreen(userId: userId)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username or password.')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: CommonAppBar(
-      title: 'Login',
-      scaffoldKey: _scaffoldKey, // Pass the key here
+        title: 'Login',
+        scaffoldKey: _scaffoldKey,
       ),
+      drawer: const NavigationDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -577,9 +624,8 @@ class _LoginPageState extends State<LoginPage> {
             ElevatedButton(
               onPressed: _login,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    Theme.of(context).colorScheme.primary, // Background color
-                foregroundColor: Colors.white, // Text color
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
               ),
               child: const Text('Login'),
             ),
@@ -601,12 +647,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// The Profile screen that is shown upon successful login.
-// ====================================================
-// Parent Profile Screen with Tabs (Overview, Past Orders, Update Info)
-// ====================================================
+/// -------------------- PROFILE SCREEN --------------------
 class ProfileScreen extends StatefulWidget {
-  final int userId; // User ID passed from login
+  final int userId;
   ProfileScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
@@ -614,26 +657,38 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenWithTabsState extends State<ProfileScreen> {
-  // Controllers for username and password (shared by tabs)
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Used to greet the user by their first name
   String _firstName = "";
   bool _isLoading = true;
   final DBHelper _dbHelper = DBHelper();
 
-  // Shared avatar state variables
-  File? _avatar; // If user picks from camera/gallery
-  String? _selectedPreset; // If user picks one of the preset avatars
+  File? _avatar;
+  String? _selectedPreset;
+
+  // Local notifications plugin instance.
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
+    _initializeNotifications(); // Initialize notifications on startup.
     _loadUserData();
   }
 
-  // Loads user data from the database (to prefill username and get first name)
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
+    const InitializationSettings initSettings =
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
+    await _localNotificationsPlugin.initialize(initSettings);
+  }
+
   Future<void> _loadUserData() async {
     final user = await _dbHelper.getUserById(widget.userId);
     if (user != null) {
@@ -642,12 +697,10 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
         _firstName = user['firstName'];
         _isLoading = false;
       });
-      // Call _loadAvatarState here so the saved avatar is loaded when the screen builds.
-    _loadAvatarState();
+      _loadAvatarState();
     }
   }
 
-  // Save the avatar state to shared_preferences
   Future<void> _saveAvatarState({File? avatar, String? preset}) async {
     final prefs = await SharedPreferences.getInstance();
     if (avatar != null) {
@@ -657,13 +710,11 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
       await prefs.setString('presetAvatar', preset);
       await prefs.remove('avatarPath');
     } else {
-      // If neither is set, clear both.
       await prefs.remove('avatarPath');
       await prefs.remove('presetAvatar');
     }
   }
 
-  // Load the avatar state from shared_preferences and update our state.
   Future<void> _loadAvatarState() async {
     final prefs = await SharedPreferences.getInstance();
     String? avatarPath = prefs.getString('avatarPath');
@@ -679,36 +730,44 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
     });
   }
 
-  // This callback is called from the Update Info tab when the avatar is changed.
-  // We update our shared state and then save it.
   void _onAvatarUpdated({File? newAvatar, String? newPreset}) {
-    print("Avatar updated: newAvatar = $newAvatar, newPreset = $newPreset");
     setState(() {
       _avatar = newAvatar;
       _selectedPreset = newPreset;
     });
     _saveAvatarState(avatar: newAvatar, preset: newPreset);
+    _showAvatarNotification();
   }
 
+  Future<void> _showAvatarNotification() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'avatar_channel',
+      'Avatar Notifications',
+      channelDescription: 'Notification when avatar is updated',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails, iOS: iosDetails);
+    await _localNotificationsPlugin.show(
+      0,
+      'Avatar Updated',
+      'Your avatar has been updated!',
+      notificationDetails,
+    );
+  }
 
-  // ---------------------------
-  // LOGOUT FUNCTION
-  // ---------------------------
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('userId'); // Clear the stored login state
-    Navigator.pushReplacementNamed(context, '/login'); // Navigate to Login page
+    await prefs.remove('userId');
+    Navigator.pushReplacementNamed(context, '/login');
   }
-
 
   @override
   Widget build(BuildContext context) {
-    //final colorScheme = Theme.of(context).colorScheme;
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-
     return DefaultTabController(
-      length: 3, // Three tabs: Overview, Past Orders, Update Info
+      length: 3,
       child: Scaffold(
         key: _scaffoldKey,
         appBar: CommonAppBar(
@@ -721,37 +780,31 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
             ),
           ],
         ),
-        drawer: const HomePage().buildLeftDrawer(context),
+        drawer: const NavigationDrawer(),
         body: Column(
           children: [
-            // This TabBar is placed below the AppBar
             TabBar(
-              //backgroundColor: Theme.of(context).colorScheme.primary,
               labelColor: Theme.of(context).colorScheme.tertiary,
               unselectedLabelColor: Theme.of(context).colorScheme.primary,
               indicatorColor: Colors.white,
-              tabs: [
+              tabs: const [
                 Tab(text: "Overview"),
                 Tab(text: "Past Orders"),
                 Tab(text: "Update Info"),
               ],
             ),
-            // Expanded widget ensures the TabBarView takes the remaining space
             Expanded(
               child: TabBarView(
                 children: [
-                  // Overview Tab
                   ProfileOverviewContent(
                     userId: widget.userId,
                     avatar: _selectedPreset != null
-                      ? AssetImage(_selectedPreset!) as ImageProvider
-                      : (_avatar != null
-                          ? FileImage(_avatar!)
-                          : const AssetImage('assets/default_avatar.png')),
+                        ? AssetImage(_selectedPreset!) as ImageProvider
+                        : (_avatar != null
+                            ? FileImage(_avatar!)
+                            : const AssetImage('assets/default_avatar.png')),
                   ),
-                  // Past Orders Tab
                   PastOrdersContent(userId: widget.userId),
-                  // Update Info Tab
                   UpdateInfoContent(
                     userId: widget.userId,
                     usernameController: _usernameController,
@@ -765,23 +818,19 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
         ),
       ),
     );
-
   }
 }
 
-// ====================================================
-// Overview Tab Widget: Displays current user info and avatar
-// ====================================================
+/// -------------------- PROFILE OVERVIEW CONTENT --------------------
 class ProfileOverviewContent extends StatelessWidget {
   final int userId;
-  final ImageProvider avatar; // Shared avatar passed from parent
+  final ImageProvider avatar;
 
   const ProfileOverviewContent({Key? key, required this.userId, required this.avatar})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Use FutureBuilder to load user data from the database
     return FutureBuilder<Map<String, dynamic>?>(
       future: DBHelper().getUserById(userId),
       builder: (context, snapshot) {
@@ -797,7 +846,6 @@ class ProfileOverviewContent extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Display the shared avatar
               CircleAvatar(
                 radius: 50,
                 backgroundImage: avatar,
@@ -820,12 +868,9 @@ class ProfileOverviewContent extends StatelessWidget {
   }
 }
 
-// ====================================================
-// Past Orders Tab Widget: Displays user's past orders
-// ====================================================
+/// -------------------- PAST ORDERS CONTENT --------------------
 class PastOrdersContent extends StatefulWidget {
   final int userId;
-
   const PastOrdersContent({Key? key, required this.userId}) : super(key: key);
 
   @override
@@ -877,9 +922,7 @@ class _PastOrdersContentState extends State<PastOrdersContent> {
   }
 }
 
-// ====================================================
-// Update Info Tab Widget: Allows updating user info and avatar
-// ====================================================
+/// -------------------- UPDATE INFO CONTENT --------------------
 class UpdateInfoContent extends StatefulWidget {
   final int userId;
   final TextEditingController usernameController;
@@ -906,7 +949,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // List of preset avatar asset paths (adjust as needed)
   final List<String> _presetAvatars = [
     'assets/avatar1.jpg',
     'assets/avatar2.jpg',
@@ -919,64 +961,53 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
     _initializeNotifications();
   }
 
-  // Initialize local notifications for avatar updates
   Future<void> _initializeNotifications() async {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings();
+    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
     const InitializationSettings initSettings =
         InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _localNotificationsPlugin.initialize(initSettings);
   }
 
-  // Update the user's info (username and password) in the database
   Future<void> _updateProfile() async {
-  // Get the new values entered by the user
-  String newUsername = widget.usernameController.text.trim();
-  String newPassword = widget.passwordController.text.trim();
+    String newUsername = widget.usernameController.text.trim();
+    String newPassword = widget.passwordController.text.trim();
 
-  // Retrieve current user data from the database
-  final currentUser = await _dbHelper.getUserById(widget.userId);
+    final currentUser = await _dbHelper.getUserById(widget.userId);
+    if (newUsername.isEmpty) {
+      newUsername = currentUser?['userName'] ?? "";
+    }
+    if (newPassword.isEmpty) {
+      newPassword = currentUser?['password'] ?? "";
+    }
 
-  // If a field is left empty, use the current value
-  if (newUsername.isEmpty) {
-    newUsername = currentUser?['userName'] ?? "";
+    int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
+
+    if (result > 0) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile updated successfully")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to update profile")),
+      );
+    }
   }
-  if (newPassword.isEmpty) {
-    newPassword = currentUser?['password'] ?? "";
-  }
 
-  // Update the user data in the database
-  int result = await _dbHelper.updateUser(widget.userId, newUsername, newPassword);
-
-  if (result > 0) {
-    setState(() {}); // Refresh the UI if needed
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile updated successfully")),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Failed to update profile")),
-    );
-  }
-}
-
-  // Pick an avatar image from the specified source (camera or gallery)
   Future<void> _pickAvatarFromSource(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
       setState(() {
-        _selectedPreset = null; // Clear preset if user picks a file
+        _selectedPreset = null;
         _avatar = File(pickedFile.path);
       });
-      // Update parent's shared state with the new avatar file
       widget.onAvatarUpdated(newAvatar: _avatar, newPreset: null);
       _showAvatarNotification();
     }
   }
 
-  // Show a dialog with options: take photo, gallery, or choose preset avatar
   Future<void> _showAvatarOptions() async {
     showDialog(
       context: context,
@@ -986,7 +1017,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Option for taking a photo
               ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: const Text("Take Photo"),
@@ -995,7 +1025,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
                   _pickAvatarFromSource(ImageSource.camera);
                 },
               ),
-              // Option for choosing from gallery
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: const Text("Choose from Gallery"),
@@ -1004,7 +1033,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
                   _pickAvatarFromSource(ImageSource.gallery);
                 },
               ),
-              // Option for choosing a preset avatar
               ListTile(
                 leading: const Icon(Icons.image),
                 title: const Text("Choose Preset Avatar"),
@@ -1016,7 +1044,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
             ],
           ),
           actions: [
-            // Cancel button to dismiss the dialog
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
@@ -1029,52 +1056,47 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
     );
   }
 
-  // Show a dialog with a grid of preset avatars to choose from
   Future<void> _showPresetAvatarsDialog() async {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Select a Preset Avatar"),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: GridView.builder(
-            shrinkWrap: true,
-            itemCount: _presetAvatars.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select a Preset Avatar"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              itemCount: _presetAvatars.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                final preset = _presetAvatars[index];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedPreset = preset;
+                      _avatar = null;
+                    });
+                    Navigator.of(context).pop();
+                    widget.onAvatarUpdated(newAvatar: null, newPreset: preset);
+                    _showAvatarNotification();
+                  },
+                  child: Image.asset(
+                    preset,
+                    fit: BoxFit.cover,
+                  ),
+                );
+              },
             ),
-            itemBuilder: (context, index) {
-              final preset = _presetAvatars[index];
-              return GestureDetector(
-                onTap: () {
-                  // Debug print to verify the preset is selected
-                  print("Preset selected: $preset");
-                  setState(() {
-                    _selectedPreset = preset;
-                    _avatar = null; // Clear any previously picked image
-                  });
-                  Navigator.of(context).pop();
-                  // Update parent's shared state with the preset asset path
-                  widget.onAvatarUpdated(newAvatar: null, newPreset: preset);
-                  _showAvatarNotification();
-                },
-                child: Image.asset(
-                  preset,
-                  fit: BoxFit.cover,
-                ),
-              );
-            },
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-  // Show a local notification indicating the avatar was updated
   Future<void> _showAvatarNotification() async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'avatar_channel',
@@ -1101,7 +1123,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar selection widget (tap to open avatar options)
           Center(
             child: InkWell(
               onTap: _showAvatarOptions,
@@ -1119,7 +1140,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
             ),
           ),
           const SizedBox(height: 20),
-          // Username field
           const Text(
             "Update Username",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -1136,7 +1156,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
             ),
           ),
           const SizedBox(height: 20),
-          // Password field
           const Text(
             "Update Password",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -1154,7 +1173,6 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
             obscureText: true,
           ),
           const SizedBox(height: 30),
-          // Save Changes button
           Center(
             child: ElevatedButton(
               onPressed: _updateProfile,
@@ -1176,12 +1194,9 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
   }
 }
 
-
-// Past orders screen
-
+/// -------------------- PAST ORDERS SCREEN --------------------
 class PastOrdersScreen extends StatefulWidget {
   final int userId;
-
   const PastOrdersScreen({super.key, required this.userId});
 
   @override
@@ -1189,6 +1204,7 @@ class PastOrdersScreen extends StatefulWidget {
 }
 
 class PastOrdersScreenState extends State<PastOrdersScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final DBHelper _dbHelper = DBHelper();
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = true;
@@ -1209,13 +1225,13 @@ class PastOrdersScreenState extends State<PastOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Scaffold(
+      key: _scaffoldKey,
       appBar: CommonAppBar(
         title: "Past Orders",
-        scaffoldKey: _scaffoldKey, // Pass the key here
+        scaffoldKey: _scaffoldKey,
       ),
+      drawer: const NavigationDrawer(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _orders.isEmpty
@@ -1240,9 +1256,7 @@ class PastOrdersScreenState extends State<PastOrdersScreen> {
   }
 }
 
-
-// The sign-up page that allows a user to create an account.
-
+/// -------------------- SIGN UP PAGE --------------------
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -1251,14 +1265,15 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  // Global key to manage the form.
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for the four text fields.
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController  = TextEditingController();
   final TextEditingController _usernameController  = TextEditingController();
   final TextEditingController _passwordController  = TextEditingController();
+
+  // State-level GlobalKey for the Scaffold.
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void dispose() {
@@ -1269,38 +1284,30 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  // This function inserts the user into the database if valid.
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       final dbHelper = DBHelper();
-      
-      // Optionally, you can check if a user with the same username already exists.
-      // Here, we perform a query using the username (ignoring password for uniqueness).
+
       final existingUsers = await DBHelper.database.then((db) =>
-      db.query('users', where: 'userName = ?', whereArgs: [_usernameController.text.trim()])
+          db.query('users', where: 'userName = ?', whereArgs: [_usernameController.text.trim()])
       );
 
-      
       if (existingUsers.isNotEmpty) {
-        // Show an error message if the username is taken.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Username already exists!')),
         );
         return;
       }
 
-      // Prepare the user data with keys matching the database schema.
       final newUser = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
-        'userName': _usernameController.text.trim(), // Note: 'userName' must match the column name in the database.
-        'password': _passwordController.text, // In production, never store plain text!
+        'userName': _usernameController.text.trim(),
+        'password': _passwordController.text,
       };
 
-      // Insert the new user into the database.
       await dbHelper.insertUser(newUser);
 
-      // Navigate to the Login screen after a successful sign-up.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -1310,18 +1317,17 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Scaffold(
+      key: _scaffoldKey,
       appBar: CommonAppBar(
         title: 'Create Account',
-        scaffoldKey: _scaffoldKey, // Pass the key here
-        ),
+        scaffoldKey: _scaffoldKey,
+      ),
+      drawer: const NavigationDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _formKey, // Assign the global key to the form.
+          key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

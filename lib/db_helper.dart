@@ -157,6 +157,12 @@ Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
       {'productName': 'Winter Coat', 'productDesc': 'Warm winter coat', 'productPrice': 35.00, 'category': 'Outerwear'},
       {'productName': 'Asymmetrical Maroon Top', 'productDesc': 'A maroon top with an asymmetrical hemline.', 'productPrice': 20.00, 'category': 'Tops'},
       {'productName': 'Black Trouser Pants', 'productDesc': 'Comfortable black trouser pants for a professional look.', 'productPrice': 25.00, 'category': 'Bottoms'},
+      {'productName': 'Teal Blouse ', 'productDesc': 'Comfy, casual teal blouse.', 'productPrice': 20.00, 'category': 'Tops'},
+      {'productName': 'Linen Pants', 'productDesc': 'Green-colored linen pants for a casual look.', 'productPrice': 20.00, 'category': 'Bottoms'},
+      {'productName': 'Maxi Dress', 'productDesc': 'Long, knit dress', 'productPrice': 35.00, 'category': 'Dresses'},
+      {'productName': 'Rain Coat', 'productDesc': 'Cute rain coat to keep you dry and chic during a rainstorm.', 'productPrice': 35.00, 'category': 'Outerwear'},
+      {'productName': 'Striped Top', 'productDesc': 'A striped, knit top.', 'productPrice': 20.00, 'category': 'Tops'},
+      {'productName': 'Dark Rinse Skinny Jeans', 'productDesc': 'Soft, stretchy skinny jeans in a dark rinse.', 'productPrice': 25.00, 'category': 'Bottoms'},
     ];
 
     for (var product in products) {
