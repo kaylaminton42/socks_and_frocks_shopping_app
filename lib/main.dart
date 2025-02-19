@@ -74,6 +74,8 @@ class MainApp extends StatelessWidget {
             },
           );
         },
+        '/cart': (context) => const CartScreen(),
+        '/checkout': (context) => const CheckoutScreen(),
 
         //'/pastorders': (context) => PastOrdersScreen(
           //    userId: ModalRoute.of(context)!.settings.arguments as int,
@@ -117,9 +119,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Get the current route name.
     final String? currentRoute = ModalRoute.of(context)?.settings.name;
-    // Check if the current route is not the home route and can pop.
     final bool showBackButton =
         currentRoute != '/' && Navigator.of(context).canPop();
 
@@ -129,25 +129,32 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
         title,
         style: const TextStyle(color: Colors.white),
       ),
-      leading: showBackButton
+      leading: showBackButton //BACK BUTTON
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             )
-      : IconButton(
-        icon: const Icon(Icons.menu, color: Colors.white),
-        onPressed: () {
-          scaffoldKey.currentState?.openDrawer();
-        },
-      ),
+          : IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {
+                scaffoldKey.currentState?.openDrawer();
+              },
+            ),
       actions: [
         // Home button
         IconButton(
           icon: const Icon(Icons.home, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/');
+          },
+        ),
+        // Cart button
+        IconButton(
+          icon: const Icon(Icons.shopping_cart, color: Colors.white),
+          onPressed: () {
+            Navigator.pushNamed(context, '/cart');
           },
         ),
         // Profile/Login button
@@ -173,6 +180,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize =>
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
+
 
 /// A common Navigation Drawer used by every page.
 class NavigationDrawer extends StatelessWidget {
@@ -250,7 +258,7 @@ class NavigationDrawer extends StatelessWidget {
   }
 }
 
-/// -------------------- HOME PAGE --------------------
+/// -------------------- BEGIN HOME PAGE --------------------
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -385,8 +393,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+/// -------------------- BEGIN HOME PAGE --------------------
 
-/// -------------------- PRODUCTS PAGE --------------------
+/// -------------------- BEGIN PRODUCTS PAGE --------------------
 class ProductsPage extends StatefulWidget {
   final String title;
   const ProductsPage({super.key, required this.title});
@@ -509,8 +518,9 @@ class ProductsPageState extends State<ProductsPage> {
     );
   }
 }
+/// -------------------- BEGIN PRODUCTS PAGE --------------------
 
-/// -------------------- ITEM LISTING PAGE --------------------
+/// -------------------- BEGIN ITEM LISTING PAGE --------------------
 class ItemListingPage extends StatelessWidget {
   final Map<String, dynamic> product;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -561,7 +571,9 @@ class ItemListingPage extends StatelessWidget {
             const SizedBox(height: 24),
             Center(
               child: ElevatedButton.icon(
-                onPressed: () {
+                 onPressed: () {
+                  // Add the product to the cart.
+                  Cart().addItem(product);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("${product['productName']} added to cart")),
                   );
@@ -580,8 +592,9 @@ class ItemListingPage extends StatelessWidget {
     );
   }
 }
+/// -------------------- END ITEM LISTING PAGE --------------------
 
-/// -------------------- LOGIN PAGE --------------------
+/// -------------------- BEGIN LOGIN PAGE --------------------
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -681,8 +694,9 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+/// -------------------- END LOGIN PAGE --------------------
 
-/// -------------------- PROFILE SCREEN --------------------
+/// -------------------- BEGIN PROFILE SCREEN --------------------
 class ProfileScreen extends StatefulWidget {
   final int userId;
   ProfileScreen({Key? key, required this.userId}) : super(key: key);
@@ -862,8 +876,9 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
     );
   }
 }
+/// -------------------- END PROFILE SCREEN --------------------
 
-/// -------------------- PROFILE OVERVIEW CONTENT --------------------
+/// -------------------- BEGIN PROFILE OVERVIEW CONTENT --------------------
 class ProfileOverviewContent extends StatelessWidget {
   final int userId;
   final ImageProvider avatar;
@@ -909,8 +924,9 @@ class ProfileOverviewContent extends StatelessWidget {
     );
   }
 }
+/// -------------------- END PROFILE OVERVIEW CONTENT --------------------
 
-/// -------------------- PAST ORDERS CONTENT --------------------
+/// -------------------- BEGIN PAST ORDERS CONTENT --------------------
 class PastOrdersContent extends StatefulWidget {
   final int userId;
   const PastOrdersContent({Key? key, required this.userId}) : super(key: key);
@@ -971,8 +987,9 @@ class _PastOrdersContentState extends State<PastOrdersContent> {
               );
   }
 }
+/// -------------------- END PAST ORDERS CONTENT --------------------
 
-/// -------------------- UPDATE INFO CONTENT --------------------
+/// -------------------- BEGIN UPDATE INFO CONTENT --------------------
 class UpdateInfoContent extends StatefulWidget {
   final int userId;
   final TextEditingController usernameController;
@@ -1243,6 +1260,10 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
     );
   }
 }
+/// -------------------- END UPDATE INFO CONTENT --------------------
+
+
+
 /*
 /// -------------------- PAST ORDERS SCREEN --------------------
 class PastOrdersScreen extends StatefulWidget {
@@ -1307,7 +1328,7 @@ class PastOrdersScreenState extends State<PastOrdersScreen> {
 }
 */
 
-/// -------------------- SIGN UP PAGE --------------------
+/// --------------------  BEGIN SIGN UP PAGE --------------------
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -1453,9 +1474,9 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 }
-//END SIGN UP PAGE
+// ------------------- END SIGN UP PAGE -------------------
 
-//ORDER DETAILS SCREEN
+// ------------------- BEGIN ORDER DETAILS SCREEN -------------------
 class OrderDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> order;
   const OrderDetailsScreen({Key? key, required this.order}) : super(key: key);
@@ -1557,4 +1578,207 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 }
 
-//End OrderDetailsScreen
+// ------------------- END ORDER DETAILS SCREEN -------------------
+
+// ------------------- BEGIN CART SCREEN -------------------
+class CartScreen extends StatefulWidget {
+  const CartScreen({Key? key}) : super(key: key);
+  
+  @override
+  _CartScreenState createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final Cart cart = Cart();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: CommonAppBar(
+        title: "Your Cart",
+        scaffoldKey: _scaffoldKey,
+      ),
+      body: cart.items.isEmpty
+          ? const Center(child: Text("Your cart is empty"))
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: cart.items.length,
+                    itemBuilder: (context, index) {
+                      final item = cart.items[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
+                        child: ListTile(
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4.0),
+                              color: Colors.grey[300],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4.0),
+                              child: Image.asset(
+                                'assets/product_placeholder.png',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          title: Text(item.product['productName']),
+                          subtitle: Text(
+                            "Price: \$${(item.product['productPrice'] as num).toStringAsFixed(2)}\nQuantity: ${item.quantity}",
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              setState(() {
+                                cart.removeItem(item.product);
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    "Total: \$${cart.total.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // Navigation buttons: Continue Shopping and Checkout
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Navigate back to home or products page.
+                            Navigator.pushNamed(context, '/');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text("Continue Shopping"),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Navigate to checkout screen.
+                            Navigator.pushNamed(context, '/checkout');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.tertiary,
+                            foregroundColor: Colors.grey[700],
+                          ),
+                          child: const Text("Proceed to Checkout"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+// ------------------- END CART SCREEN -------------------
+
+// ------------------- BEGIN CHECKOUT SCREEN -------------------
+class CheckoutScreen extends StatelessWidget {
+  const CheckoutScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: CommonAppBar(
+        title: "Checkout",
+        scaffoldKey: _scaffoldKey,
+      ),
+      body: const Center(
+        child: Text(
+          "Checkout screen goes here",
+          style: TextStyle(fontSize: 18),
+        ),
+      ),
+    );
+  }
+}
+
+
+// ------------------- END CHECKOUT SCREEN -------------------
+
+
+class CartItem {
+  final Map<String, dynamic> product;
+  int quantity;
+  CartItem({required this.product, required this.quantity});
+}
+
+class Cart {
+  // Singleton instance.
+  static final Cart _instance = Cart._internal();
+  factory Cart() => _instance;
+  Cart._internal();
+
+  final List<CartItem> items = [];
+
+  // Add product to cart or increase quantity if it exists.
+  void addItem(Map<String, dynamic> product) {
+    // Assuming product has a unique key 'productID'
+    final existingItem = items.firstWhere(
+      (item) => item.product['productID'] == product['productID'],
+      orElse: () => CartItem(product: product, quantity: 0),
+    );
+    if (existingItem.quantity > 0) {
+      existingItem.quantity++;
+    } else {
+      items.add(CartItem(product: product, quantity: 1));
+    }
+  }
+
+  // Remove a product from the cart.
+  void removeItem(Map<String, dynamic> product) {
+    items.removeWhere((item) => item.product['productID'] == product['productID']);
+  }
+
+  // Update quantity; if quantity becomes 0, remove the item.
+  void updateQuantity(Map<String, dynamic> product, int quantity) {
+    final existingItem = items.firstWhere(
+      (item) => item.product['productID'] == product['productID'],
+      orElse: () => CartItem(product: product, quantity: 0),
+    );
+    if (quantity <= 0) {
+      removeItem(product);
+    } else {
+      existingItem.quantity = quantity;
+    }
+  }
+
+  // Compute total price.
+  double get total {
+    double sum = 0;
+    for (var item in items) {
+      sum += (item.product['productPrice'] as num) * item.quantity;
+    }
+    return sum;
+  }
+}
