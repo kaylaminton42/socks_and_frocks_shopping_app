@@ -9,13 +9,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
+Future<int?> _getUserId() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt('userId');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final int? userId = prefs.getInt('userId');
 
   runApp(MainApp(
-    initialRoute: userId != null ? '/profile' : '/login',
+    initialRoute: '/',
     userId: userId,
   ));
 }
@@ -55,11 +60,24 @@ class MainApp extends StatelessWidget {
               product: ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>,
             ),
-        '/profile': (context) =>
-            userId != null ? ProfileScreen(userId: userId!) : const LoginPage(),
-        '/pastorders': (context) => PastOrdersScreen(
-              userId: ModalRoute.of(context)!.settings.arguments as int,
-            ),
+        '/profile': (context) {
+          return FutureBuilder<int?>(
+            future: _getUserId(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              if (snapshot.hasData && snapshot.data != null) {
+                return ProfileScreen(userId: snapshot.data!);
+              }
+              return const LoginPage();
+            },
+          );
+        },
+
+        //'/pastorders': (context) => PastOrdersScreen(
+          //    userId: ModalRoute.of(context)!.settings.arguments as int,
+            //),
       },
     );
   }
@@ -99,13 +117,26 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    // Get the current route name.
+    final String? currentRoute = ModalRoute.of(context)?.settings.name;
+    // Check if the current route is not the home route and can pop.
+    final bool showBackButton =
+        currentRoute != '/' && Navigator.of(context).canPop();
+
     return AppBar(
       backgroundColor: colorScheme.primary,
       title: Text(
         title,
         style: const TextStyle(color: Colors.white),
       ),
-      leading: IconButton(
+      leading: showBackButton
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            )
+      : IconButton(
         icon: const Icon(Icons.menu, color: Colors.white),
         onPressed: () {
           scaffoldKey.currentState?.openDrawer();
@@ -577,6 +608,7 @@ class _LoginPageState extends State<LoginPage> {
     final dbHelper = DBHelper();
     final matchingUser = await dbHelper.getUserByCredentials(userName, password);
 
+
     if (matchingUser != null) {
       int userId = matchingUser['userID'];
       final prefs = await SharedPreferences.getInstance();
@@ -610,7 +642,10 @@ class _LoginPageState extends State<LoginPage> {
               controller: _usernameController,
               decoration: const InputDecoration(
                 labelText: 'Username',
-                hintText: 'janesmith1',
+                hintText: 'janesmith',
+                hintStyle: TextStyle(
+                  color: Colors.grey, // Adjust the color to be lighter or as desired.
+                  fontStyle: FontStyle.italic,),
               ),
             ),
             TextField(
@@ -697,47 +732,54 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
         _firstName = user['firstName'];
         _isLoading = false;
       });
-      _loadAvatarState();
+      _loadAvatarState(widget.userId);
     }
   }
 
-  Future<void> _saveAvatarState({File? avatar, String? preset}) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (avatar != null) {
-      await prefs.setString('avatarPath', avatar.path);
-      await prefs.remove('presetAvatar');
+  Future<void> _saveAvatarState({required int userId, File? avatar, String? preset}) async {
+  final prefs = await SharedPreferences.getInstance();
+  if (avatar != null) {
+    await prefs.setString('avatarPath_$userId', avatar.path);
+    await prefs.remove('presetAvatar_$userId');
+  } else if (preset != null) {
+    await prefs.setString('presetAvatar_$userId', preset);
+    await prefs.remove('avatarPath_$userId');
+  } else {
+    await prefs.remove('avatarPath_$userId');
+    await prefs.remove('presetAvatar_$userId');
+  }
+}
+
+
+  Future<void> _loadAvatarState(int userId) async {
+  final prefs = await SharedPreferences.getInstance();
+  String? avatarPath = prefs.getString('avatarPath_$userId');
+  String? preset = prefs.getString('presetAvatar_$userId');
+  setState(() {
+    if (avatarPath != null) {
+      _avatar = File(avatarPath);
+      _selectedPreset = null;
     } else if (preset != null) {
-      await prefs.setString('presetAvatar', preset);
-      await prefs.remove('avatarPath');
+      _selectedPreset = preset;
+      _avatar = null;
     } else {
-      await prefs.remove('avatarPath');
-      await prefs.remove('presetAvatar');
+      _avatar = null;
+      _selectedPreset = null;
     }
-  }
+  });
+}
 
-  Future<void> _loadAvatarState() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? avatarPath = prefs.getString('avatarPath');
-    String? preset = prefs.getString('presetAvatar');
-    setState(() {
-      if (avatarPath != null) {
-        _avatar = File(avatarPath);
-        _selectedPreset = null;
-      } else if (preset != null) {
-        _selectedPreset = preset;
-        _avatar = null;
-      }
-    });
-  }
 
   void _onAvatarUpdated({File? newAvatar, String? newPreset}) {
-    setState(() {
-      _avatar = newAvatar;
-      _selectedPreset = newPreset;
-    });
-    _saveAvatarState(avatar: newAvatar, preset: newPreset);
-    _showAvatarNotification();
-  }
+  setState(() {
+    _avatar = newAvatar;
+    _selectedPreset = newPreset;
+  });
+  // Pass the user ID along with the new avatar information
+  _saveAvatarState(userId: widget.userId, avatar: newAvatar, preset: newPreset);
+  _showAvatarNotification();
+}
+
 
   Future<void> _showAvatarNotification() async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -915,6 +957,14 @@ class _PastOrdersContentState extends State<PastOrdersContent> {
                         "Date: ${order['orderDate']}\nTotal: \$${(order['orderTotal'] as num).toStringAsFixed(2)}",
                       ),
                       isThreeLine: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OrderDetailsScreen(order: order),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
@@ -1193,7 +1243,7 @@ class _UpdateInfoContentState extends State<UpdateInfoContent> {
     );
   }
 }
-
+/*
 /// -------------------- PAST ORDERS SCREEN --------------------
 class PastOrdersScreen extends StatefulWidget {
   final int userId;
@@ -1255,6 +1305,7 @@ class PastOrdersScreenState extends State<PastOrdersScreen> {
     );
   }
 }
+*/
 
 /// -------------------- SIGN UP PAGE --------------------
 class SignUpPage extends StatefulWidget {
@@ -1402,3 +1453,108 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 }
+//END SIGN UP PAGE
+
+//ORDER DETAILS SCREEN
+class OrderDetailsScreen extends StatefulWidget {
+  final Map<String, dynamic> order;
+  const OrderDetailsScreen({Key? key, required this.order}) : super(key: key);
+
+  @override
+  _OrderDetailsScreenState createState() => _OrderDetailsScreenState();
+}
+
+class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+  final DBHelper _dbHelper = DBHelper();
+  List<Map<String, dynamic>> _orderedProducts = [];
+  bool _isLoading = true;
+
+  Future<void> _fetchOrderedProducts() async {
+    final products = await _dbHelper.getOrderedProductsByOrderId(widget.order['orderID']);
+    setState(() {
+      _orderedProducts = products;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrderedProducts();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF795CAF), // Primary color
+        foregroundColor: Colors.white,
+        title: Text("Order #${widget.order['orderID']} Details"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Order header information
+            Text("Order Number: ${widget.order['orderID']}",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("Order Date: ${widget.order['orderDate']}", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text(
+              "Order Total: \$${(widget.order['orderTotal'] as num).toStringAsFixed(2)}",
+              style: const TextStyle(fontSize: 16),
+            ),
+            const Divider(height: 32),
+            const Text(
+              "Receipt",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            // Display the list of ordered products
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _orderedProducts.isEmpty
+                    ? const Text("No products found for this order.")
+                    : Expanded(
+                        child: ListView.builder(
+                          itemCount: _orderedProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _orderedProducts[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: ListTile(
+                                // Display a product image.
+                                leading: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    color: Colors.grey[300],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                    child: Image.asset(
+                                      'assets/product_placeholder.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(product['productName']),
+                                subtitle: Text(
+                                  "Price: \$${(product['productPrice'] as num).toStringAsFixed(2)}\nQuantity: ${product['quantity']}",
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+//End OrderDetailsScreen

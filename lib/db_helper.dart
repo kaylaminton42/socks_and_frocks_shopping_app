@@ -18,6 +18,7 @@ class DBHelper {
       path,
       version: 1,
       onCreate: (db, version) async {
+        // Create users table
         await db.execute('''
           CREATE TABLE users (
             userID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +29,7 @@ class DBHelper {
           );
         ''');
 
+        // Create products table
         await db.execute('''
           CREATE TABLE products (
             productID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +40,7 @@ class DBHelper {
           );
         ''');
 
+        // Create orders table
         await db.execute('''
           CREATE TABLE orders (
             orderID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,17 +51,20 @@ class DBHelper {
           );
         ''');
 
+        // Create orderedProducts table with orderID foreign key
         await db.execute('''
           CREATE TABLE orderedProducts (
             orderedID INTEGER PRIMARY KEY AUTOINCREMENT,
-            userID INTEGER NOT NULL,
+            orderID INTEGER NOT NULL,
             productID INTEGER NOT NULL,
-            FOREIGN KEY(userID) REFERENCES users(userID),
+            quantity INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(orderID) REFERENCES orders(orderID),
             FOREIGN KEY(productID) REFERENCES products(productID)
           );
         ''');
 
-        // Insert sample data
+
+        // Insert sample data (users, products, orders, and orderedProducts)
         await _insertSampleData(db);
       },
     );
@@ -106,17 +112,16 @@ class DBHelper {
     );
   }
 
-// Fetch orders for a given user
-Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
-  final db = await database;
-  return db.query(
-    'orders',
-    where: 'userID = ?',
-    whereArgs: [userId],
-    orderBy: 'orderDate DESC', // Orders most recent first
-  );
-}
-
+  // Fetch orders for a given user
+  Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
+    final db = await database;
+    return db.query(
+      'orders',
+      where: 'userID = ?',
+      whereArgs: [userId],
+      orderBy: 'orderDate DESC', // Most recent orders first
+    );
+  }
 
   // Delete user (optional: for account deletion)
   Future<int> deleteUser(int userId) async {
@@ -134,8 +139,20 @@ Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
     return db.query('products', where: 'category = ?', whereArgs: [category]);
   }
 
-  // Insert sample data (default users & products)
+  Future<List<Map<String, dynamic>>> getOrderedProductsByOrderId(int orderId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT p.*, op.quantity
+      FROM products p
+      JOIN orderedProducts op ON p.productID = op.productID
+      WHERE op.orderID = ?
+    ''', [orderId]);
+  }
+
+
+  // Insert sample data (users, products, orders, and corresponding orderedProducts)
   static Future<void> _insertSampleData(Database db) async {
+    // Insert sample users
     await db.insert('users', {
       'firstName': 'John',
       'lastName': 'Doe',
@@ -150,23 +167,150 @@ Future<List<Map<String, dynamic>>> getOrdersByUser(int userId) async {
       'password': 'password123'
     });
 
+    // Insert sample products
     List<Map<String, dynamic>> products = [
-      {'productName': 'Colorful Tie Blouse', 'productDesc': 'White blouse with a cute colorful pattern and a black ribbon in the back for a bow.', 'productPrice': 20.00, 'category': 'Tops'},
-      {'productName': 'Linen Pants', 'productDesc': 'Khaki-colored linen pants for a casual look.', 'productPrice': 20.00, 'category': 'Bottoms'},
-      {'productName': 'Summer Dress', 'productDesc': 'Floral summer dress', 'productPrice': 35.00, 'category': 'Dresses'},
-      {'productName': 'Winter Coat', 'productDesc': 'Warm winter coat', 'productPrice': 35.00, 'category': 'Outerwear'},
-      {'productName': 'Asymmetrical Maroon Top', 'productDesc': 'A maroon top with an asymmetrical hemline.', 'productPrice': 20.00, 'category': 'Tops'},
-      {'productName': 'Black Trouser Pants', 'productDesc': 'Comfortable black trouser pants for a professional look.', 'productPrice': 25.00, 'category': 'Bottoms'},
-      {'productName': 'Teal Blouse ', 'productDesc': 'Comfy, casual teal blouse.', 'productPrice': 20.00, 'category': 'Tops'},
-      {'productName': 'Linen Pants', 'productDesc': 'Green-colored linen pants for a casual look.', 'productPrice': 20.00, 'category': 'Bottoms'},
-      {'productName': 'Maxi Dress', 'productDesc': 'Long, knit dress', 'productPrice': 35.00, 'category': 'Dresses'},
-      {'productName': 'Rain Coat', 'productDesc': 'Cute rain coat to keep you dry and chic during a rainstorm.', 'productPrice': 35.00, 'category': 'Outerwear'},
-      {'productName': 'Striped Top', 'productDesc': 'A striped, knit top.', 'productPrice': 20.00, 'category': 'Tops'},
-      {'productName': 'Dark Rinse Skinny Jeans', 'productDesc': 'Soft, stretchy skinny jeans in a dark rinse.', 'productPrice': 25.00, 'category': 'Bottoms'},
+      {
+        'productName': 'Colorful Tie Blouse',
+        'productDesc': 'White blouse with a cute colorful pattern and a black ribbon in the back for a bow.',
+        'productPrice': 20.00,
+        'category': 'Tops'
+      },
+      {
+        'productName': 'Linen Pants',
+        'productDesc': 'Khaki-colored linen pants for a casual look.',
+        'productPrice': 20.00,
+        'category': 'Bottoms'
+      },
+      {
+        'productName': 'Summer Dress',
+        'productDesc': 'Floral summer dress',
+        'productPrice': 35.00,
+        'category': 'Dresses'
+      },
+      {
+        'productName': 'Winter Coat',
+        'productDesc': 'Warm winter coat',
+        'productPrice': 35.00,
+        'category': 'Outerwear'
+      },
+      {
+        'productName': 'Asymmetrical Maroon Top',
+        'productDesc': 'A maroon top with an asymmetrical hemline.',
+        'productPrice': 20.00,
+        'category': 'Tops'
+      },
+      {
+        'productName': 'Black Trouser Pants',
+        'productDesc': 'Comfortable black trouser pants for a professional look.',
+        'productPrice': 25.00,
+        'category': 'Bottoms'
+      },
+      {
+        'productName': 'Teal Blouse',
+        'productDesc': 'Comfy, casual teal blouse.',
+        'productPrice': 20.00,
+        'category': 'Tops'
+      },
+      {
+        'productName': 'Linen Pants',
+        'productDesc': 'Green-colored linen pants for a casual look.',
+        'productPrice': 20.00,
+        'category': 'Bottoms'
+      },
+      {
+        'productName': 'Maxi Dress',
+        'productDesc': 'Long, knit dress',
+        'productPrice': 35.00,
+        'category': 'Dresses'
+      },
+      {
+        'productName': 'Rain Coat',
+        'productDesc': 'Cute rain coat to keep you dry and chic during a rainstorm.',
+        'productPrice': 35.00,
+        'category': 'Outerwear'
+      },
+      {
+        'productName': 'Striped Top',
+        'productDesc': 'A striped, knit top.',
+        'productPrice': 20.00,
+        'category': 'Tops'
+      },
+      {
+        'productName': 'Dark Rinse Skinny Jeans',
+        'productDesc': 'Soft, stretchy skinny jeans in a dark rinse.',
+        'productPrice': 25.00,
+        'category': 'Bottoms'
+      },
     ];
 
     for (var product in products) {
       await db.insert('products', product);
     }
+
+    // Insert sample orders and corresponding orderedProducts entries.
+    // For simplicity, each order will be associated with one sample product.
+    // The sample product ID is provided in the order map (it will be removed before inserting into orders).
+    // In _insertSampleData(Database db):
+    List<Map<String, dynamic>> sampleOrders = [
+      // Orders for johndoe (userID = 1)
+      {
+        'userID': 1,
+        'orderDate': '2024-12-01',
+        'orderTotal': 40.00,
+        'productID': 1, // sample product for this order
+        'quantity': 2,
+      },
+      {
+        'userID': 1,
+        'orderDate': '2024-12-15',
+        'orderTotal': 60.00,
+        'productID': 2,
+        'quantity': 3,
+      },
+      {
+        'userID': 1,
+        'orderDate': '2024-12-20',
+        'orderTotal': 35.00,
+        'productID': 3,
+        'quantity': 1,
+      },
+      // Orders for janesmith (userID = 2)
+      {
+        'userID': 2,
+        'orderDate': '2024-12-05',
+        'orderTotal': 35.00,
+        'productID': 4,
+        'quantity': 1,
+      },
+      {
+        'userID': 2,
+        'orderDate': '2024-12-10',
+        'orderTotal': 40.00,
+        'productID': 5,
+        'quantity': 2,
+      },
+      {
+        'userID': 2,
+        'orderDate': '2024-12-25',
+        'orderTotal': 75.00,
+        'productID': 6,
+        'quantity': 3,
+      },
+    ];
+
+    for (var order in sampleOrders) {
+      int productID = order.remove('productID');
+      int quantity = order.remove('quantity') ?? 1;
+      // Insert the order and capture the auto-generated orderID.
+      int orderID = await db.insert('orders', order);
+      // Insert the corresponding orderedProducts entry linking the order to the product.
+      await db.insert('orderedProducts', {
+        'orderID': orderID,
+        'productID': productID,
+        'quantity': quantity,
+      });
+    }
+
   }
 }
+
