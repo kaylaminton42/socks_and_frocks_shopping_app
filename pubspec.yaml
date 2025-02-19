@@ -75,6 +75,7 @@ flutter:
     - assets/avatar1.jpg
     - assets/avatar2.jpg
     - assets/avatar3.jpg
+    - assets/robot.png
   
   fonts:
     - family: Jost-Black

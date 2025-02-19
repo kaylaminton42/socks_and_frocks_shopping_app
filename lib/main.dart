@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:socks_and_frocks_shopping_app/runner_game.dart';
 
 Future<int?> _getUserId() async {
   final prefs = await SharedPreferences.getInstance();
@@ -76,7 +77,7 @@ class MainApp extends StatelessWidget {
         },
         '/cart': (context) => const CartScreen(),
         '/checkout': (context) => const CheckoutScreen(),
-
+        '/game': (context) => const RunnerGame(),
         //'/pastorders': (context) => PastOrdersScreen(
           //    userId: ModalRoute.of(context)!.settings.arguments as int,
             //),
@@ -125,11 +126,22 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       backgroundColor: colorScheme.primary,
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                overflow: TextOverflow.ellipsis,
+              ),
+              maxLines: 1,
+            ),
+          ),
+        ],
       ),
-      leading: showBackButton //BACK BUTTON
+      leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
@@ -143,32 +155,54 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
             ),
       actions: [
-        // Home button
+        // Home button stays as a direct icon if you like:
         IconButton(
           icon: const Icon(Icons.home, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/');
           },
         ),
-        // Cart button
-        IconButton(
-          icon: const Icon(Icons.shopping_cart, color: Colors.white),
-          onPressed: () {
-            Navigator.pushNamed(context, '/cart');
-          },
-        ),
-        // Profile/Login button
-        IconButton(
-          icon: const Icon(Icons.person_outline, color: Colors.white),
-          onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            final int? userId = prefs.getInt('userId');
-            if (userId != null) {
-              Navigator.pushNamed(context, '/profile', arguments: userId);
-            } else {
-              Navigator.pushNamed(context, '/login');
+        // Replace multiple icons with a single PopupMenuButton:
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          onSelected: (value) async {
+            if (value == 'game') {
+              Navigator.pushNamed(context, '/game');
+            } else if (value == 'cart') {
+              Navigator.pushNamed(context, '/cart');
+            } else if (value == 'profile') {
+              final prefs = await SharedPreferences.getInstance();
+              final int? userId = prefs.getInt('userId');
+              if (userId != null) {
+                Navigator.pushNamed(context, '/profile', arguments: userId);
+              } else {
+                Navigator.pushNamed(context, '/login');
+              }
             }
           },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'game',
+              child: ListTile(
+                leading: Icon(Icons.videogame_asset),
+                title: Text('Game'),
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'cart',
+              child: ListTile(
+                leading: Icon(Icons.shopping_cart),
+                title: Text('Cart'),
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'profile',
+              child: ListTile(
+                leading: Icon(Icons.person_outline),
+                title: Text('Profile'),
+              ),
+            ),
+          ],
         ),
         if (additionalActions != null) ...additionalActions!,
       ],
@@ -180,6 +214,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize =>
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
+
 
 
 /// A common Navigation Drawer used by every page.
@@ -294,7 +329,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: CommonAppBar(
-        title: 'Socks & Frocks',
+        title: 'Home',
         scaffoldKey: _scaffoldKey,
       ),
       drawer: const NavigationDrawer(),
@@ -431,7 +466,7 @@ class ProductsPageState extends State<ProductsPage> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: CommonAppBar(
-        title: 'Socks & Frocks',
+        title: 'Categories',
         scaffoldKey: _scaffoldKey,
       ),
       drawer: const NavigationDrawer(),
@@ -518,7 +553,7 @@ class ProductsPageState extends State<ProductsPage> {
     );
   }
 }
-/// -------------------- BEGIN PRODUCTS PAGE --------------------
+/// -------------------- END PRODUCTS PAGE --------------------
 
 /// -------------------- BEGIN ITEM LISTING PAGE --------------------
 class ItemListingPage extends StatelessWidget {
@@ -532,7 +567,8 @@ class ItemListingPage extends StatelessWidget {
     return Scaffold(
       key: _scaffoldKey,
       appBar: CommonAppBar(
-        title: product['productName'],
+        //title: product['productName'],
+        title: ' ',
         scaffoldKey: _scaffoldKey,
       ),
       drawer: const NavigationDrawer(),
