@@ -70,12 +70,23 @@ flutter:
   assets:
     - assets/logo.PNG
     - assets/placeholder.png
-    - assets/colorful_top.png
+    - assets/products/colorful_top.png
     - assets/android_logo.png
     - assets/avatar1.jpg
     - assets/avatar2.jpg
     - assets/avatar3.jpg
     - assets/robot.png
+    - assets/products/black_trousers.JPEG
+    - assets/products/green_linen_pants.jpg
+    - assets/products/linen_pants.JPEG
+    - assets/products/maroon_top.JPEG
+    - assets/products/maxi_dress.jpg
+    - assets/products/rain_coat.jpg
+    - assets/products/skinny_jeans.JPEG
+    - assets/products/striped_top.JPEG
+    - assets/products/summer_dress.jpg
+    - assets/products/teal_blouse.JPEG
+    - assets/products/winter_coat.jpg
   
   fonts:
     - family: Jost-Black

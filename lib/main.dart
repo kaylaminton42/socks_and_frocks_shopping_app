@@ -117,6 +117,14 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.bottom,
   }) : super(key: key);
 
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    // Optionally clear the cart
+    Cart().clear();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -155,21 +163,26 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
             ),
       actions: [
-        // Home button stays as a direct icon if you like:
+        // Home button always visible.
         IconButton(
           icon: const Icon(Icons.home, color: Colors.white),
           onPressed: () {
             Navigator.pushNamed(context, '/');
           },
         ),
-        // Replace multiple icons with a single PopupMenuButton:
+        // Cart button always visible.
+        IconButton(
+          icon: const Icon(Icons.shopping_cart, color: Colors.white),
+          onPressed: () {
+            Navigator.pushNamed(context, '/cart');
+          },
+        ),
+        // Overflow menu for additional actions.
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.white),
           onSelected: (value) async {
             if (value == 'game') {
               Navigator.pushNamed(context, '/game');
-            } else if (value == 'cart') {
-              Navigator.pushNamed(context, '/cart');
             } else if (value == 'profile') {
               final prefs = await SharedPreferences.getInstance();
               final int? userId = prefs.getInt('userId');
@@ -178,6 +191,8 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               } else {
                 Navigator.pushNamed(context, '/login');
               }
+            } else if (value == 'logout') {
+              await _logout(context);
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -189,17 +204,18 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
             const PopupMenuItem<String>(
-              value: 'cart',
-              child: ListTile(
-                leading: Icon(Icons.shopping_cart),
-                title: Text('Cart'),
-              ),
-            ),
-            const PopupMenuItem<String>(
               value: 'profile',
               child: ListTile(
                 leading: Icon(Icons.person_outline),
                 title: Text('Profile'),
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Log Out'),
               ),
             ),
           ],
@@ -214,7 +230,6 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize =>
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
-
 
 
 /// A common Navigation Drawer used by every page.
@@ -500,58 +515,71 @@ class ProductsPageState extends State<ProductsPage> {
   }
 
   Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    return TextButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ItemListingPage(product: product),
-          ),
-        );
-      },
-      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 3,
-        color: Colors.white,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SizedBox(
-              height: 80,
-              child: Center(
-                child: Icon(
-                  Icons.image,
-                  size: 50,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+  return TextButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ItemListingPage(product: product),
+        ),
+      );
+    },
+    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    child: Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 3,
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Ensure a uniform image height
+          SizedBox(
+            height: 150, // Fixed image height (adjust as needed)
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              child: Image.asset(
+                product['image'] ?? 'assets/product_placeholder.png',
+                fit: BoxFit.cover,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Text(
+          ),
+          
+          // Title & Price Section with a fixed height
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 40, // Fixed height for title (adjust as needed)
+                  child: Text(
                     product['productName'],
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.tertiary,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2, // Prevents text overflow beyond 2 lines
+                    overflow: TextOverflow.ellipsis, // Adds "..." if text is too long
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
 }
 /// -------------------- END PRODUCTS PAGE --------------------
 
@@ -567,8 +595,7 @@ class ItemListingPage extends StatelessWidget {
     return Scaffold(
       key: _scaffoldKey,
       appBar: CommonAppBar(
-        //title: product['productName'],
-        title: ' ',
+        title: product['productName'],
         scaffoldKey: _scaffoldKey,
       ),
       drawer: const NavigationDrawer(),
@@ -581,12 +608,9 @@ class ItemListingPage extends StatelessWidget {
               height: 200,
               width: double.infinity,
               color: Colors.grey[300],
-              child: Center(
-                child: Icon(
-                  Icons.image,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+              child: Image.asset(
+                product['image'] ?? 'assets/product_placeholder.png',
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 16),
@@ -597,7 +621,10 @@ class ItemListingPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
-              style: TextStyle(fontSize: 20, color: Theme.of(context).colorScheme.tertiary),
+              style: TextStyle(
+                fontSize: 20,
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -607,7 +634,7 @@ class ItemListingPage extends StatelessWidget {
             const SizedBox(height: 24),
             Center(
               child: ElevatedButton.icon(
-                 onPressed: () {
+                onPressed: () {
                   // Add the product to the cart.
                   Cart().addItem(product);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -628,6 +655,7 @@ class ItemListingPage extends StatelessWidget {
     );
   }
 }
+
 /// -------------------- END ITEM LISTING PAGE --------------------
 
 /// -------------------- BEGIN LOGIN PAGE --------------------
@@ -851,10 +879,13 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('userId');
-    Navigator.pushReplacementNamed(context, '/login');
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('userId');
+  // Clear the global cart
+  Cart().clear();
+  Navigator.pushReplacementNamed(context, '/login');
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -865,12 +896,12 @@ class _ProfileScreenWithTabsState extends State<ProfileScreen> {
         appBar: CommonAppBar(
           title: "Hello, $_firstName!",
           scaffoldKey: _scaffoldKey,
-          additionalActions: [
+          /*additionalActions: [
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               onPressed: _logout,
             ),
-          ],
+          ],*/
         ),
         drawer: const NavigationDrawer(),
         body: Column(
@@ -1444,6 +1475,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 decoration: const InputDecoration(
                   labelText: 'First Name',
                   hintText: 'Jane',
+                  hintStyle: TextStyle(
+                  color: Colors.grey, // Adjust the color to be lighter or as desired.
+                  fontStyle: FontStyle.italic,)
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -1457,6 +1491,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 decoration: const InputDecoration(
                   labelText: 'Last Name',
                   hintText: 'Smith',
+                  hintStyle: TextStyle(
+                  color: Colors.grey, // Adjust the color to be lighter or as desired.
+                  fontStyle: FontStyle.italic,)
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -1469,7 +1506,10 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: _usernameController,
                 decoration: const InputDecoration(
                   labelText: 'Username',
-                  hintText: 'janesmith1',
+                  hintText: 'janesmith',
+                  hintStyle: TextStyle(
+                  color: Colors.grey, // Adjust the color to be lighter or as desired.
+                  fontStyle: FontStyle.italic,)
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -1482,6 +1522,10 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: _passwordController,
                 decoration: const InputDecoration(
                   labelText: 'Password',
+                  hintText: 'superSecretPassword123',
+                  hintStyle: TextStyle(
+                  color: Colors.grey, // Adjust the color to be lighter or as desired.
+                  fontStyle: FontStyle.italic,)
                 ),
                 obscureText: true,
                 validator: (value) {
@@ -1544,7 +1588,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF795CAF), // Primary color
+        backgroundColor: const Color(0xFF795CAF),
         foregroundColor: Colors.white,
         title: Text("Order #${widget.order['orderID']} Details"),
       ),
@@ -1553,11 +1597,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Order header information
             Text("Order Number: ${widget.order['orderID']}",
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text("Order Date: ${widget.order['orderDate']}", style: const TextStyle(fontSize: 16)),
+            Text("Order Date: ${widget.order['orderDate']}",
+                style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
             Text(
               "Order Total: \$${(widget.order['orderTotal'] as num).toStringAsFixed(2)}",
@@ -1569,7 +1613,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            // Display the list of ordered products
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _orderedProducts.isEmpty
@@ -1582,7 +1625,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 8.0),
                               child: ListTile(
-                                // Display a product image.
                                 leading: Container(
                                   width: 50,
                                   height: 50,
@@ -1593,7 +1635,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(4.0),
                                     child: Image.asset(
-                                      'assets/product_placeholder.png',
+                                      product['image'] ?? 'assets/product_placeholder.png',
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -1613,6 +1655,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 }
+
 
 // ------------------- END ORDER DETAILS SCREEN -------------------
 
@@ -1659,7 +1702,7 @@ class _CartScreenState extends State<CartScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(4.0),
                               child: Image.asset(
-                                'assets/product_placeholder.png',
+                                item.product['image'] ?? 'assets/product_placeholder.png',
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -1690,21 +1733,17 @@ class _CartScreenState extends State<CartScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                // Navigation buttons: Continue Shopping and Checkout
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Navigate back to home or products page.
                             Navigator.pushNamed(context, '/');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
                           child: const Text("Continue Shopping"),
@@ -1714,12 +1753,10 @@ class _CartScreenState extends State<CartScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Navigate to checkout screen.
                             Navigator.pushNamed(context, '/checkout');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.tertiary,
+                            backgroundColor: Theme.of(context).colorScheme.tertiary,
                             foregroundColor: Colors.grey[700],
                           ),
                           child: const Text("Proceed to Checkout"),
@@ -1733,6 +1770,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+
 
 // ------------------- END CART SCREEN -------------------
 
@@ -1779,7 +1817,6 @@ class Cart {
 
   // Add product to cart or increase quantity if it exists.
   void addItem(Map<String, dynamic> product) {
-    // Assuming product has a unique key 'productID'
     final existingItem = items.firstWhere(
       (item) => item.product['productID'] == product['productID'],
       orElse: () => CartItem(product: product, quantity: 0),
@@ -1817,4 +1854,10 @@ class Cart {
     }
     return sum;
   }
+  
+  // Clear the cart.
+  void clear() {
+    items.clear();
+  }
 }
+

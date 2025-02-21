@@ -16,7 +16,7 @@ class DBHelper {
     final path = join(await getDatabasesPath(), 'ict4580.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 1,  // If you already have a database created, you might need to bump the version and implement onUpgrade.
       onCreate: (db, version) async {
         // Create users table
         await db.execute('''
@@ -29,14 +29,15 @@ class DBHelper {
           );
         ''');
 
-        // Create products table
+        // Create products table with an additional "image" column.
         await db.execute('''
           CREATE TABLE products (
             productID INTEGER PRIMARY KEY AUTOINCREMENT,
             productName TEXT NOT NULL,
             productDesc TEXT NOT NULL,
             productPrice REAL NOT NULL,
-            category TEXT NOT NULL
+            category TEXT NOT NULL,
+            image TEXT
           );
         ''');
 
@@ -62,7 +63,6 @@ class DBHelper {
             FOREIGN KEY(productID) REFERENCES products(productID)
           );
         ''');
-
 
         // Insert sample data (users, products, orders, and orderedProducts)
         await _insertSampleData(db);
@@ -119,7 +119,7 @@ class DBHelper {
       'orders',
       where: 'userID = ?',
       whereArgs: [userId],
-      orderBy: 'orderDate DESC', // Most recent orders first
+      orderBy: 'orderDate DESC',
     );
   }
 
@@ -149,7 +149,6 @@ class DBHelper {
     ''', [orderId]);
   }
 
-
   // Insert sample data (users, products, orders, and corresponding orderedProducts)
   static Future<void> _insertSampleData(Database db) async {
     // Insert sample users
@@ -167,79 +166,91 @@ class DBHelper {
       'password': 'password123'
     });
 
-    // Insert sample products
+    // Insert sample products with the new image field.
     List<Map<String, dynamic>> products = [
       {
         'productName': 'Colorful Tie Blouse',
         'productDesc': 'White blouse with a cute colorful pattern and a black ribbon in the back for a bow.',
         'productPrice': 20.00,
-        'category': 'Tops'
+        'category': 'Tops',
+        'image': 'assets/products/colorful_top.png', // provide asset path
       },
       {
         'productName': 'Linen Pants',
         'productDesc': 'Khaki-colored linen pants for a casual look.',
         'productPrice': 20.00,
-        'category': 'Bottoms'
+        'category': 'Bottoms',
+        'image': 'assets/products/linen_pants.JPEG',
       },
       {
         'productName': 'Summer Dress',
         'productDesc': 'Floral summer dress',
         'productPrice': 35.00,
-        'category': 'Dresses'
+        'category': 'Dresses',
+        'image': 'assets/products/summer_dress.jpg',
       },
       {
         'productName': 'Winter Coat',
         'productDesc': 'Warm winter coat',
         'productPrice': 35.00,
-        'category': 'Outerwear'
+        'category': 'Outerwear',
+        'image': 'assets/products/winter_coat.jpg',
       },
       {
         'productName': 'Asymmetrical Maroon Top',
         'productDesc': 'A maroon top with an asymmetrical hemline.',
         'productPrice': 20.00,
-        'category': 'Tops'
+        'category': 'Tops',
+        'image': 'assets/products/maroon_top.JPEG',
       },
       {
         'productName': 'Black Trouser Pants',
         'productDesc': 'Comfortable black trouser pants for a professional look.',
         'productPrice': 25.00,
-        'category': 'Bottoms'
+        'category': 'Bottoms',
+        'image': 'assets/products/black_trousers.JPEG',
       },
       {
         'productName': 'Teal Blouse',
         'productDesc': 'Comfy, casual teal blouse.',
         'productPrice': 20.00,
-        'category': 'Tops'
+        'category': 'Tops',
+        'image': 'assets/products/teal_blouse.JPEG',
       },
       {
         'productName': 'Linen Pants',
         'productDesc': 'Green-colored linen pants for a casual look.',
         'productPrice': 20.00,
-        'category': 'Bottoms'
+        'category': 'Bottoms',
+        'image': 'assets/products/green_linen_pants.jpg',
       },
       {
         'productName': 'Maxi Dress',
         'productDesc': 'Long, knit dress',
         'productPrice': 35.00,
-        'category': 'Dresses'
+        'category': 'Dresses',
+        'image': 'assets/products/maxi_dress.jpg',
       },
       {
         'productName': 'Rain Coat',
         'productDesc': 'Cute rain coat to keep you dry and chic during a rainstorm.',
         'productPrice': 35.00,
-        'category': 'Outerwear'
+        'category': 'Outerwear',
+        'image': 'assets/products/rain_coat.jpg',
       },
       {
         'productName': 'Striped Top',
         'productDesc': 'A striped, knit top.',
         'productPrice': 20.00,
-        'category': 'Tops'
+        'category': 'Tops',
+        'image': 'assets/products/striped_top.JPEG',
       },
       {
-        'productName': 'Dark Rinse Skinny Jeans',
+        'productName': 'Skinny Jeans',
         'productDesc': 'Soft, stretchy skinny jeans in a dark rinse.',
         'productPrice': 25.00,
-        'category': 'Bottoms'
+        'category': 'Bottoms',
+        'image': 'assets/products/skinny_jeans.JPEG',
       },
     ];
 
@@ -248,16 +259,13 @@ class DBHelper {
     }
 
     // Insert sample orders and corresponding orderedProducts entries.
-    // For simplicity, each order will be associated with one sample product.
-    // The sample product ID is provided in the order map (it will be removed before inserting into orders).
-    // In _insertSampleData(Database db):
     List<Map<String, dynamic>> sampleOrders = [
       // Orders for johndoe (userID = 1)
       {
         'userID': 1,
         'orderDate': '2024-12-01',
         'orderTotal': 40.00,
-        'productID': 1, // sample product for this order
+        'productID': 1,
         'quantity': 2,
       },
       {
@@ -310,7 +318,5 @@ class DBHelper {
         'quantity': quantity,
       });
     }
-
   }
 }
-
