@@ -1671,6 +1671,23 @@ class _CartScreenState extends State<CartScreen> {
   final Cart cart = Cart();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Function to adjust quantity
+  void _updateQuantity(Map<String, dynamic> product, int change) {
+    setState(() {
+      // Find the existing item
+      final existingItem = cart.items.firstWhere(
+          (item) => item.product['productID'] == product['productID'],
+          orElse: () => CartItem(product: product, quantity: 0));
+      
+      int newQuantity = existingItem.quantity + change;
+      if (newQuantity <= 0) {
+        cart.removeItem(product);
+      } else {
+        cart.updateQuantity(product, newQuantity);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1692,6 +1709,16 @@ class _CartScreenState extends State<CartScreen> {
                         margin: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),
                         child: ListTile(
+                          // Tapping the image or title navigates to the product detail page.
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ItemListingPage(product: item.product),
+                              ),
+                            );
+                          },
                           leading: Container(
                             width: 50,
                             height: 50,
@@ -1702,22 +1729,40 @@ class _CartScreenState extends State<CartScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(4.0),
                               child: Image.asset(
-                                item.product['image'] ?? 'assets/product_placeholder.png',
+                                item.product['image'] ??
+                                    'assets/product_placeholder.png',
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
                           title: Text(item.product['productName']),
                           subtitle: Text(
-                            "Price: \$${(item.product['productPrice'] as num).toStringAsFixed(2)}\nQuantity: ${item.quantity}",
+                            "Price: \$${(item.product['productPrice'] as num).toStringAsFixed(2)}",
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              setState(() {
-                                cart.removeItem(item.product);
-                              });
-                            },
+                          trailing: SizedBox(
+                            width: 120,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // Minus button
+                                IconButton(
+                                  icon: const Icon(Icons.remove),
+                                  onPressed: () {
+                                    _updateQuantity(item.product, -1);
+                                  },
+                                ),
+                                // Display quantity
+                                Text(item.quantity.toString(),
+                                    style: const TextStyle(fontSize: 16)),
+                                // Plus button
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: () {
+                                    _updateQuantity(item.product, 1);
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -1733,8 +1778,10 @@ class _CartScreenState extends State<CartScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+                // Navigation buttons: Continue Shopping and Checkout
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -1743,7 +1790,8 @@ class _CartScreenState extends State<CartScreen> {
                             Navigator.pushNamed(context, '/');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
                           child: const Text("Continue Shopping"),
@@ -1756,7 +1804,8 @@ class _CartScreenState extends State<CartScreen> {
                             Navigator.pushNamed(context, '/checkout');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.tertiary,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.tertiary,
                             foregroundColor: Colors.grey[700],
                           ),
                           child: const Text("Proceed to Checkout"),
@@ -1770,6 +1819,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+
 
 
 // ------------------- END CART SCREEN -------------------
