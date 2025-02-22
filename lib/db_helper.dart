@@ -169,13 +169,15 @@ class DBHelper {
     // Insert sample products with the new image field.
     List<Map<String, dynamic>> products = [
       {
+        'productID': 101,
         'productName': 'Colorful Tie Blouse',
         'productDesc': 'White blouse with a cute colorful pattern and a black ribbon in the back for a bow.',
         'productPrice': 20.00,
         'category': 'Tops',
-        'image': 'assets/products/colorful_top.png', // provide asset path
+        'image': 'assets/products/colorful_top.png', 
       },
       {
+        'productID': 102,
         'productName': 'Linen Pants',
         'productDesc': 'Khaki-colored linen pants for a casual look.',
         'productPrice': 20.00,
@@ -183,6 +185,7 @@ class DBHelper {
         'image': 'assets/products/linen_pants.JPEG',
       },
       {
+        'productID': 103,
         'productName': 'Summer Dress',
         'productDesc': 'Floral summer dress',
         'productPrice': 35.00,
@@ -190,6 +193,7 @@ class DBHelper {
         'image': 'assets/products/summer_dress.jpg',
       },
       {
+        'productID': 104,
         'productName': 'Winter Coat',
         'productDesc': 'Warm winter coat',
         'productPrice': 35.00,
@@ -197,6 +201,7 @@ class DBHelper {
         'image': 'assets/products/winter_coat.jpg',
       },
       {
+        'productID': 105,
         'productName': 'Asymmetrical Maroon Top',
         'productDesc': 'A maroon top with an asymmetrical hemline.',
         'productPrice': 20.00,
@@ -204,6 +209,7 @@ class DBHelper {
         'image': 'assets/products/maroon_top.JPEG',
       },
       {
+        'productID': 106,
         'productName': 'Black Trouser Pants',
         'productDesc': 'Comfortable black trouser pants for a professional look.',
         'productPrice': 25.00,
@@ -211,6 +217,7 @@ class DBHelper {
         'image': 'assets/products/black_trousers.JPEG',
       },
       {
+        'productID': 107,
         'productName': 'Teal Blouse',
         'productDesc': 'Comfy, casual teal blouse.',
         'productPrice': 20.00,
@@ -218,6 +225,7 @@ class DBHelper {
         'image': 'assets/products/teal_blouse.JPEG',
       },
       {
+        'productID': 108,
         'productName': 'Linen Pants',
         'productDesc': 'Green-colored linen pants for a casual look.',
         'productPrice': 20.00,
@@ -225,6 +233,7 @@ class DBHelper {
         'image': 'assets/products/green_linen_pants.jpg',
       },
       {
+        'productID': 109,
         'productName': 'Maxi Dress',
         'productDesc': 'Long, knit dress',
         'productPrice': 35.00,
@@ -232,6 +241,7 @@ class DBHelper {
         'image': 'assets/products/maxi_dress.jpg',
       },
       {
+        'productID': 110,
         'productName': 'Rain Coat',
         'productDesc': 'Cute rain coat to keep you dry and chic during a rainstorm.',
         'productPrice': 35.00,
@@ -239,6 +249,7 @@ class DBHelper {
         'image': 'assets/products/rain_coat.jpg',
       },
       {
+        'productID': 111,
         'productName': 'Striped Top',
         'productDesc': 'A striped, knit top.',
         'productPrice': 20.00,
@@ -246,6 +257,7 @@ class DBHelper {
         'image': 'assets/products/striped_top.JPEG',
       },
       {
+        'productID': 112,
         'productName': 'Skinny Jeans',
         'productDesc': 'Soft, stretchy skinny jeans in a dark rinse.',
         'productPrice': 25.00,

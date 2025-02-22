@@ -43,6 +43,7 @@ dependencies:
   image_picker: ^0.8.7+3
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.0.15
+  font_awesome_flutter: ^10.8.0
 
 
 dev_dependencies:
@@ -87,6 +88,12 @@ flutter:
     - assets/products/summer_dress.jpg
     - assets/products/teal_blouse.JPEG
     - assets/products/winter_coat.jpg
+    - assets/categories/tops.png
+    - assets/categories/bottoms.png
+    - assets/categories/outerwear.png
+    - assets/categories/accessories.png
+    - assets/categories/sale.png
+    - assets/categories/dresses.png
   
   fonts:
     - family: Jost-Black

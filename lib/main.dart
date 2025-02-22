@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socks_and_frocks_shopping_app/runner_game.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 Future<int?> _getUserId() async {
   final prefs = await SharedPreferences.getInstance();
@@ -53,8 +54,10 @@ class MainApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         '/tops': (context) => const ProductsPage(title: 'Tops'),
         '/bottoms': (context) => const ProductsPage(title: 'Bottoms'),
+        '/dresses': (context) => const ProductsPage(title: 'Dresses'),
         '/outerwear': (context) => const ProductsPage(title: 'Outerwear'),
         '/accessories': (context) => const ProductsPage(title: 'Accessories'),
+        '/sale': (context) => const ProductsPage(title: 'Sales'),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
         '/item': (context) => ItemListingPage(
@@ -231,6 +234,63 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
 
+// Creates a footer to be used across the entire app.
+class CommonFooter extends StatelessWidget {
+  const CommonFooter({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      color: colorScheme.primary,
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '© 2025 Socks & Frocks, LLC',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'All rights reserved',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ],
+          ),
+          // Optionally, add more elements like social icons or links
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.facebook, color: Colors.white),
+                onPressed: () {
+                  // Handle Facebook tap
+                },
+              ),
+              IconButton(
+                icon: const FaIcon(FontAwesomeIcons.twitter, color: Colors.white),
+                onPressed: () {
+                  // Handle Twitter tap
+                },
+              ),
+              IconButton(
+                icon: const FaIcon(FontAwesomeIcons.instagram, color: Colors.white),
+                onPressed: () {
+                  // Handle Instagram tap
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// A common Navigation Drawer used by every page.
 class NavigationDrawer extends StatelessWidget {
@@ -287,6 +347,13 @@ class NavigationDrawer extends StatelessWidget {
                 },
               ),
               ListTile(
+                title: const Text('Dresses'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/dresses');
+                },
+              ),
+              ListTile(
                 title: const Text('Outerwear'),
                 onTap: () {
                   Navigator.pop(context);
@@ -298,6 +365,13 @@ class NavigationDrawer extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, '/accessories');
+                },
+              ),
+              ListTile(
+                title: const Text('Sale'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/sale');
                 },
               ),
             ],
@@ -322,14 +396,57 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Sample featured collections.
+  // featured collections
   final List<Map<String, String>> featuredCollections = [
-    {'title': 'Tops', 'route': '/tops'},
-    {'title': 'Bottoms', 'route': '/bottoms'},
-    {'title': 'Outerwear', 'route': '/outerwear'},
-    {'title': 'Accessories', 'route': '/accessories'},
-    {'title': 'Sale', 'route': '/'}, // Example.
-  ];
+  {'title': 'Tops', 'route': '/tops', 'image': 'assets/categories/tops.png'},
+  {'title': 'Bottoms', 'route': '/bottoms', 'image': 'assets/categories/bottoms.png'},
+  {'title': 'Dresses', 'route': '/dresses', 'image': 'assets/categories/dresses.png'},
+  {'title': 'Outerwear', 'route': '/outerwear', 'image': 'assets/categories/outerwear.png'},
+  {'title': 'Accessories', 'route': '/accessories', 'image': 'assets/categories/accessories.png'},
+  {'title': 'Sale', 'route': '/sale', 'image': 'assets/categories/sale.png'},
+];
+
+// featured items
+final List<Map<String, dynamic>> featuredItems = [
+  {
+    'productID': 101,
+    'productName': 'Colorful Tie Blouse',
+    'productPrice': 20.00,
+    'image': 'assets/products/colorful_top.png',
+    'productDesc': 'White blouse with a cute colorful pattern and a black ribbon in the back for a bow.',
+  },
+  {
+    'productID': 103,
+    'productName': 'Summer Dress',
+    'productPrice': 35.00,
+    'image': 'assets/products/summer_dress.jpg',
+    'productDesc': 'Floral summer dress',
+  },
+  {
+    'productID': 102,
+    'productName': 'Linen Pants',
+    'productPrice': 20.00,
+    'image': 'assets/products/linen_pants.JPEG',
+    'productDesc': 'Khaki-colored linen pants for a casual look.',
+  },
+  {
+    'productID': 107,
+    'productName': 'Teal Blouse',
+    'productPrice': 20.00,
+    'image': 'assets/products/teal_blouse.JPEG',
+    'productDesc': 'Comfy, casual teal blouse.',
+  },
+  {
+    'productID': 109,
+    'productName': 'Maxi Dress',
+    'productPrice': 35.00,
+    'image': 'assets/products/maxi_dress.jpg',
+    'productDesc': 'Long, knit dress',}
+
+  // Add more featured items as needed.
+];
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +456,7 @@ class _HomePageState extends State<HomePage> {
     // Adjust carousel heights and spacing.
     final double firstCarouselHeight = orientation == Orientation.portrait ? 180 : 160;
     final double secondCarouselHeight = orientation == Orientation.portrait ? 180 : 160;
-    final double extraSpacing = orientation == Orientation.portrait ? 20 : 10;
+    final double extraSpacing = orientation == Orientation.portrait ? 10 : 10;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -365,6 +482,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: extraSpacing),
+
+
             // Featured Collections carousel.
             SizedBox(
               height: firstCarouselHeight,
@@ -388,14 +507,18 @@ class _HomePageState extends State<HomePage> {
                           decoration: BoxDecoration(
                             color: colorScheme.secondaryContainer,
                             borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: AssetImage(featuredCollections[index]['image']!),
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          child: const Center(
+                          /*child: const Center(
                             child: Icon(
                               Icons.image,
                               size: 50,
                               color: Colors.white,
                             ),
-                          ),
+                          ),*/
                         ),
                         Text(
                           featuredCollections[index]['title']!,
@@ -408,42 +531,72 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: extraSpacing * 2),
+
+
             // Featured Items label.
             const Text(
               'Featured Items',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
+
+
             // Featured Items carousel.
             SizedBox(
               height: secondCarouselHeight,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: 5,
-                itemBuilder: (context, index) => Container(
-                  margin: const EdgeInsets.all(8.0),
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: colorScheme.tertiaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.white,
+                itemCount: featuredItems.length,
+                itemBuilder: (context, index) {
+                  final product = featuredItems[index];
+                  return GestureDetector(
+                    onTap: () {
+                      // Navigate to the item listing page with the product details.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ItemListingPage(product: product),
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.all(8.0),
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.tertiaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: AssetImage(product['image']),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          product['productName'],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
+
+
           ],
         ),
       ),
+      bottomNavigationBar: const CommonFooter(),
     );
   }
 }
-/// -------------------- BEGIN HOME PAGE --------------------
+/// -------------------- END HOME PAGE --------------------
 
 /// -------------------- BEGIN PRODUCTS PAGE --------------------
 class ProductsPage extends StatefulWidget {
