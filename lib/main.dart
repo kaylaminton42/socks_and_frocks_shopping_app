@@ -6,10 +6,13 @@ import 'package:social_signin_buttons_plugin/social_signin_buttons_plugin.dart';
 import 'db_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:io';
+import 'dart:io'; //show Platform;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socks_and_frocks_shopping_app/runner_game.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 Future<int?> _getUserId() async {
   final prefs = await SharedPreferences.getInstance();
@@ -263,6 +266,50 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize =>
       Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
+}
+
+//Widget for Gift Card Link
+
+class GiftCardLink extends StatelessWidget {
+  const GiftCardLink({Key? key}) : super(key: key);
+
+  // Determine the URL based on the platform.
+  String getGiftCardUrl() {
+    if (kIsWeb) {
+      // On web, use localhost.
+      return "http://localhost/ict4580/registration.html";
+    } else {
+      if (Platform.isAndroid) {
+        // For Android emulator, use 10.0.2.2.
+        return "http://10.0.2.2//ict4580/registration.html";
+      } else if (Platform.isIOS) {
+        // For iOS simulators, localhost is usually correct.
+        return "http://localhost/ict4580/registration.html";
+      } else {
+        return "http://localhost/ict4580/registration.html";
+      }
+    }
+  }
+
+  Future<void> _launchGiftCardWebsite() async {
+    final Uri url = Uri.parse(getGiftCardUrl());
+    if (!await launchUrl(url)) {
+      throw 'Could not launch $url';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: _launchGiftCardWebsite,
+      icon: const Icon(Icons.card_giftcard),
+      label: const Text('Get Your Free Gift Card'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
 }
 
 // Creates a footer to be used across the entire app.
@@ -635,9 +682,19 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
+            // Button to launch the gift card website.
+            const Text(
+              'Free Gift Card Offer',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const GiftCardLink(),
           ],
         ),
       ),
+
+      
+
       bottomNavigationBar: const CommonFooter(),
     );
   }
