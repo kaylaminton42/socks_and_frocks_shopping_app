@@ -96,6 +96,7 @@ flutter:
     - assets/categories/accessories.png
     - assets/categories/sale.png
     - assets/categories/dresses.png
+    - assets/categories/allProducts.png
   
   fonts:
     - family: Jost-Black

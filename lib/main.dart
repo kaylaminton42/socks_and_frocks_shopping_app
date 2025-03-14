@@ -502,7 +502,7 @@ class _HomePageState extends State<HomePage> {
 
   // featured collections
   final List<Map<String, String>> featuredCollections = [
-    {'title': 'All Items', 'route': '/allProducts', 'image': 'assets/categories/tops.png', 'alt': 'All items in stock',},
+    {'title': 'All Items', 'route': '/allProducts', 'image': 'assets/categories/allProducts.png', 'alt': 'All items in stock',},
     {'title': 'Tops', 'route': '/tops', 'image': 'assets/categories/tops.png', 'alt': 'A selection of trendy tops',},
     {'title': 'Bottoms', 'route': '/bottoms', 'image': 'assets/categories/bottoms.png', 'alt': 'Various styles of pants and skirts',},
     {'title': 'Dresses', 'route': '/dresses', 'image': 'assets/categories/dresses.png', 'alt': 'A variety of dresses for all occasions',},
