@@ -17,7 +17,7 @@ class DBHelper {
     // Bump the version to force onUpgrade if needed.
     return openDatabase(
       path,
-      version: 2,
+      version: 5,
       onCreate: (db, version) async {
         await _createTables(db);
         await _insertSampleData(db);
@@ -58,7 +58,10 @@ class DBHelper {
         productDesc TEXT NOT NULL,
         productPrice REAL NOT NULL,
         category TEXT NOT NULL,
-        image TEXT
+        image TEXT,
+        altText TEXT,
+        onSale INTEGER NOT NULL DEFAULT 0,
+        salePrice REAL NOT NULL
       );
     ''');
 
@@ -169,6 +172,41 @@ class DBHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getAllProducts() async {
+  final db = await database;
+  // Query all products.
+  List<Map<String, dynamic>> products = await db.query('products');
+  List<Map<String, dynamic>> mutableProducts = [];
+
+  // For each product, also fetch associated colors and styles.
+  for (var product in products) {
+    var mutableProduct = Map<String, dynamic>.from(product);
+    int productID = mutableProduct['productID'] as int;
+
+    List<Map<String, dynamic>> colorResults = await db.query(
+      'product_colors',
+      columns: ['color'],
+      where: 'productID = ?',
+      whereArgs: [productID],
+    );
+    mutableProduct['colors'] =
+        colorResults.map((e) => e['color']?.toString() ?? '').toList();
+
+    List<Map<String, dynamic>> styleResults = await db.query(
+      'product_styles',
+      columns: ['style'],
+      where: 'productID = ?',
+      whereArgs: [productID],
+    );
+    mutableProduct['styles'] =
+        styleResults.map((e) => e['style']?.toString() ?? '').toList();
+
+    mutableProducts.add(mutableProduct);
+  }
+  return mutableProducts;
+}
+
+
  Future<List<Map<String, dynamic>>> getProductsByCategory(String category) async {
   final db = await database;
   // Query the products table.
@@ -275,6 +313,9 @@ class DBHelper {
         'image': 'assets/products/colorful_top.png',
         'colors': ['White', 'Multicolor'],
         'styles': ['Casual'],
+        'altText': 'Colorful Tie Blouse',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 102,
@@ -285,6 +326,9 @@ class DBHelper {
         'image': 'assets/products/linen_pants.JPEG',
         'colors': ['Khaki', 'Beige'],
         'styles': ['Casual'],
+        'altText': 'Linen Pants in a khaki color',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 103,
@@ -295,6 +339,9 @@ class DBHelper {
         'image': 'assets/products/summer_dress.jpg',
         'colors': ['Pink', 'White'],
         'styles': ['Casual'],
+        'altText': 'Floral Summer Dress',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 104,
@@ -305,6 +352,9 @@ class DBHelper {
         'image': 'assets/products/winter_coat.jpg',
         'colors': ['Cream', 'White'],
         'styles': ['Casual'],
+        'altText': 'Winter Coat',
+        'onSale': 1,
+        'salePrice': 20.00
       },
       {
         'productID': 105,
@@ -315,6 +365,9 @@ class DBHelper {
         'image': 'assets/products/maroon_top.JPEG',
         'colors': ['Red'],
         'styles': ['Casual', 'Business Casual'],
+        'altText': 'Asymmetrical Maroon Top',
+        'onSale': 1,
+        'salePrice': 15.00
       },
       {
         'productID': 106,
@@ -325,6 +378,9 @@ class DBHelper {
         'image': 'assets/products/black_trousers.JPEG',
         'colors': ['Black'],
         'styles': ['Formal', 'Business Casual', 'Business Professional'],
+        'altText': 'Black Trouser Pants',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 107,
@@ -335,6 +391,9 @@ class DBHelper {
         'image': 'assets/products/teal_blouse.JPEG',
         'colors': ['Teal'],
         'styles': ['Casual'],
+        'altText': 'Teal Blouse',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 108,
@@ -345,6 +404,9 @@ class DBHelper {
         'image': 'assets/products/green_linen_pants.jpg',
         'colors': ['Green'],
         'styles': ['Casual'],
+        'altText': 'Green Linen Pants',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 109,
@@ -355,6 +417,9 @@ class DBHelper {
         'image': 'assets/products/maxi_dress.jpg',
         'colors': ['Gray'],
         'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Maxi Dress',
+        'onSale': 1,
+        'salePrice': 20.00
       },
       {
         'productID': 110,
@@ -365,6 +430,9 @@ class DBHelper {
         'image': 'assets/products/rain_coat.jpg',
         'colors': ['Blue'],
         'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Rain Coat',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 111,
@@ -375,6 +443,9 @@ class DBHelper {
         'image': 'assets/products/striped_top.JPEG',
         'colors': ['Red', 'Orange', 'Yellow'],
         'styles': ['Casual'],
+        'altText': 'Striped Top',
+        'onSale': 0,
+        'salePrice': 0.00
       },
       {
         'productID': 112,
@@ -385,6 +456,9 @@ class DBHelper {
         'image': 'assets/products/skinny_jeans.JPEG',
         'colors': ['Blue'],
         'styles': ['Casual', 'Business Casual'],
+        'altText': 'Skinny Jeans',
+        'onSale': 1,
+        'salePrice': 10.00
       },
     ];
 
