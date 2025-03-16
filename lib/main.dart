@@ -1140,7 +1140,7 @@ class _AllProductsPageState extends State<AllProductsPage> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 25,
+                    height: 50,
                     child: Text(
                       product['productName'],
                       style: const TextStyle(
@@ -1150,7 +1150,7 @@ class _AllProductsPageState extends State<AllProductsPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   // Price display: show both original and sale price if applicable.
                   product['onSale'] == 1
                       ? Column(
@@ -1195,7 +1195,7 @@ class _AllProductsPageState extends State<AllProductsPage> {
     final orientation = MediaQuery.of(context).orientation;
     final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
     // Adjust the childAspectRatio to ensure the cards are taller.
-    final double childAspect = orientation == Orientation.portrait ? 0.70 : 0.70;
+    final double childAspect = orientation == Orientation.portrait ? 0.65 : 0.70;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -1684,7 +1684,7 @@ class ProductsPageState extends State<ProductsPage> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 25,
+                    height: 50,
                     child: Text(
                       product['productName'],
                       style: const TextStyle(
@@ -1694,7 +1694,7 @@ class ProductsPageState extends State<ProductsPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   // Price display: show both original and sale price if applicable.
                   product['onSale'] == 1
                       ? Column(
@@ -1739,7 +1739,7 @@ class ProductsPageState extends State<ProductsPage> {
     final orientation = MediaQuery.of(context).orientation;
     final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
     // Adjust the childAspectRatio to ensure the cards are taller.
-    final double childAspect = orientation == Orientation.portrait ? 0.70 : 0.70;
+    final double childAspect = orientation == Orientation.portrait ? 0.65 : 0.70;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -2226,7 +2226,7 @@ class _SaleItemsPageState extends State<SaleItemsPage> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 25,
+                    height: 50,
                     child: Text(
                       product['productName'],
                       style: const TextStyle(
@@ -2236,7 +2236,7 @@ class _SaleItemsPageState extends State<SaleItemsPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   // Price display: show both original and sale price if applicable.
                   product['onSale'] == 1
                       ? Column(
@@ -2280,7 +2280,7 @@ class _SaleItemsPageState extends State<SaleItemsPage> {
   Widget build(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
     final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
-    final double childAspect = orientation == Orientation.portrait ? 0.70 : 0.70;
+    final double childAspect = orientation == Orientation.portrait ? 0.65 : 0.70;
 
     return Scaffold(
       key: _scaffoldKey,
