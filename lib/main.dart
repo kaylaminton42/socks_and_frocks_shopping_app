@@ -61,7 +61,7 @@ class MainApp extends StatelessWidget {
         '/dresses': (context) => const ProductsPage(title: 'Dresses'),
         '/outerwear': (context) => const ProductsPage(title: 'Outerwear'),
         '/accessories': (context) => const ProductsPage(title: 'Accessories'),
-        '/sale': (context) => const ProductsPage(title: 'Sales'),
+        '/sale': (context) => const SaleItemsPage(title: 'On Sale Now'),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
         '/item': (context) => ItemListingPage(
@@ -1815,6 +1815,542 @@ class ProductsPageState extends State<ProductsPage> {
 
 /// -------------------- END PRODUCTS PAGE --------------------
 
+/// -------------------- BEGIN SALE ITEMS PAGE --------------------
+
+class SaleItemsPage extends StatefulWidget {
+  final String title;
+  const SaleItemsPage({super.key, required this.title});
+
+  @override
+  _SaleItemsPageState createState() => _SaleItemsPageState();
+}
+
+class _SaleItemsPageState extends State<SaleItemsPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _displayedProducts = [];
+  bool _isLoading = true;
+
+  // Sort state.
+  SortOption _selectedSortOption = SortOption.priceAsc;
+
+  // Filter state.
+  Set<String> _selectedColors = {};
+  final List<String> _availableColors = [
+    'Red',
+    'Orange',
+    'Yellow',
+    'Blue',
+    'Green',
+    'Purple',
+    'Pink',
+    'White',
+    'Black',
+    'Multicolor',
+    'Gray',
+    'Khaki',
+    'Beige',
+    'Cream',
+    'Teal',
+  ];
+
+  // Filter for style.
+  Set<String> _selectedStyles = {};
+  final List<String> _availableStyles = [
+    'Casual',
+    'Formal',
+    'Business Casual',
+    'Business Professional',
+    'Loungewear',
+    'Going Out'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    // Use getSaleProducts() to fetch only sale items.
+    _products = await DBHelper().getSaleProducts();
+    _applySortAndFilter();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  void _applySortAndFilter() {
+    List<Map<String, dynamic>> temp = List.from(_products);
+
+    // Filter by color.
+    if (_selectedColors.isNotEmpty) {
+      temp = temp.where((product) {
+        List<String> productColors = (product['colors'] is List)
+            ? List<String>.from(product['colors'])
+            : [];
+        return productColors.any((c) => _selectedColors.contains(c));
+      }).toList();
+    }
+
+    // Filter by style.
+    if (_selectedStyles.isNotEmpty) {
+      temp = temp.where((product) {
+        List<String> productStyles = (product['styles'] is List)
+            ? List<String>.from(product['styles'])
+            : [];
+        return productStyles.any((s) => _selectedStyles.contains(s));
+      }).toList();
+    }
+
+    // Sorting.
+    switch (_selectedSortOption) {
+      case SortOption.priceAsc:
+        temp.sort((a, b) {
+          final double effectivePriceA = (a['onSale'] == 1)
+              ? (a['salePrice'] as num).toDouble()
+              : (a['productPrice'] as num).toDouble();
+          final double effectivePriceB = (b['onSale'] == 1)
+              ? (b['salePrice'] as num).toDouble()
+              : (b['productPrice'] as num).toDouble();
+          return effectivePriceA.compareTo(effectivePriceB);
+        });
+        break;
+      case SortOption.priceDesc:
+        temp.sort((a, b) {
+          final double effectivePriceA = (a['onSale'] == 1)
+              ? (a['salePrice'] as num).toDouble()
+              : (a['productPrice'] as num).toDouble();
+          final double effectivePriceB = (b['onSale'] == 1)
+              ? (b['salePrice'] as num).toDouble()
+              : (b['productPrice'] as num).toDouble();
+          return effectivePriceB.compareTo(effectivePriceA);
+        });
+        break;
+      case SortOption.nameAsc:
+        temp.sort((a, b) =>
+            (a['productName'] as String).compareTo(b['productName'] as String));
+        break;
+      case SortOption.nameDesc:
+        temp.sort((a, b) =>
+            (b['productName'] as String).compareTo(a['productName'] as String));
+        break;
+    }
+
+    setState(() {
+      _displayedProducts = temp;
+    });
+  }
+
+  void _showSortOptions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final orientation = MediaQuery.of(context).orientation;
+        final double heightFactor =
+            orientation == Orientation.portrait ? 0.6 : 0.8;
+        final double horizontalPadding =
+            orientation == Orientation.landscape ? 32.0 : 16.0;
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: heightFactor,
+            child: Center(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).canvasColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Stack(
+                  children: [
+                    SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 40.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Sort Options',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            RadioListTile<SortOption>(
+                              title: const Text('Price: Low to High'),
+                              value: SortOption.priceAsc,
+                              groupValue: _selectedSortOption,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSortOption = value!;
+                                });
+                                _applySortAndFilter();
+                                Navigator.pop(context);
+                              },
+                            ),
+                            RadioListTile<SortOption>(
+                              title: const Text('Price: High to Low'),
+                              value: SortOption.priceDesc,
+                              groupValue: _selectedSortOption,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSortOption = value!;
+                                });
+                                _applySortAndFilter();
+                                Navigator.pop(context);
+                              },
+                            ),
+                            RadioListTile<SortOption>(
+                              title: const Text('Name: A-Z'),
+                              value: SortOption.nameAsc,
+                              groupValue: _selectedSortOption,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSortOption = value!;
+                                });
+                                _applySortAndFilter();
+                                Navigator.pop(context);
+                              },
+                            ),
+                            RadioListTile<SortOption>(
+                              title: const Text('Name: Z-A'),
+                              value: SortOption.nameDesc,
+                              groupValue: _selectedSortOption,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSortOption = value!;
+                                });
+                                _applySortAndFilter();
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFilterOptions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final orientation = MediaQuery.of(context).orientation;
+        final double heightFactor =
+            orientation == Orientation.portrait ? 0.6 : 0.8;
+        final double horizontalPadding =
+            orientation == Orientation.landscape ? 32.0 : 16.0;
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SafeArea(
+              child: FractionallySizedBox(
+                heightFactor: heightFactor,
+                child: Center(
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).canvasColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Stack(
+                      children: [
+                        SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 40.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Filter Options',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                // Expandable filter for Color.
+                                ExpansionTile(
+                                  title: const Text('Color'),
+                                  children: _availableColors.map((color) {
+                                    return CheckboxListTile(
+                                      title: Text(color),
+                                      value: _selectedColors.contains(color),
+                                      onChanged: (bool? value) {
+                                        setModalState(() {
+                                          if (value ?? false) {
+                                            _selectedColors.add(color);
+                                          } else {
+                                            _selectedColors.remove(color);
+                                          }
+                                        });
+                                        setState(() {});
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                                // Expandable filter for Style.
+                                ExpansionTile(
+                                  title: const Text('Style'),
+                                  children: _availableStyles.map((style) {
+                                    return CheckboxListTile(
+                                      title: Text(style),
+                                      value: _selectedStyles.contains(style),
+                                      onChanged: (bool? value) {
+                                        setModalState(() {
+                                          if (value ?? false) {
+                                            _selectedStyles.add(style);
+                                          } else {
+                                            _selectedStyles.remove(style);
+                                          }
+                                        });
+                                        setState(() {});
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          _selectedColors.clear();
+                                          _selectedStyles.clear();
+                                        });
+                                        setState(() {});
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text('Clear Filters'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        _applySortAndFilter();
+                                        Navigator.pop(context);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Theme.of(context).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text('Apply Filters'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Reusable product card widget updated for sale pricing.
+  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
+    return TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemListingPage(product: product),
+          ),
+        );
+      },
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 3,
+        color: Colors.white,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 150,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(10)),
+                child: Semantics(
+                  label: product['altText'] ?? 'Product image',
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Image.asset(
+                      product['image'] ?? 'assets/product_placeholder.png',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 25,
+                    child: Text(
+                      product['productName'],
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Price display: show both original and sale price if applicable.
+                  product['onSale'] == 1
+                      ? Column(
+                          children: [
+                            Text(
+                              "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            Text(
+                              "\$${(product['salePrice'] as num).toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          "\$${(product['productPrice'] as num).toStringAsFixed(2)}",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
+    final double childAspect = orientation == Orientation.portrait ? 0.70 : 0.70;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: CommonAppBar(
+        title: widget.title,
+        scaffoldKey: _scaffoldKey,
+      ),
+      drawer: const NavigationDrawer(),
+      body: Column(
+        children: [
+          // Sort and Filter Buttons.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.sort),
+                    label: const Text('Sort'),
+                    onPressed: _showSortOptions,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.filter_alt),
+                    label: const Text('Filter'),
+                    onPressed: _showFilterOptions,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Padding(padding: EdgeInsets.all(4.0)),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _displayedProducts.isEmpty
+                    ? const Center(child: Text("No products available"))
+                    : Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: childAspect,
+                          ),
+                          itemCount: _displayedProducts.length,
+                          itemBuilder: (context, index) {
+                            return _buildProductCard(context, _displayedProducts[index]);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 /// -------------------- BEGIN ITEM LISTING PAGE --------------------
 class ItemListingPage extends StatelessWidget {
   final Map<String, dynamic> product;
@@ -3452,7 +3988,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   Widget build(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
     final int crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
-    final double childAspect = orientation == Orientation.portrait ? 0.75 : 0.85;
+    final double childAspect = orientation == Orientation.portrait ? 0.7 : 0.7;
     return Scaffold(
       key: _scaffoldKey,
       appBar: CommonAppBar(

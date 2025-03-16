@@ -173,96 +173,128 @@ class DBHelper {
   }
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
-  final db = await database;
-  // Query all products.
-  List<Map<String, dynamic>> products = await db.query('products');
-  List<Map<String, dynamic>> mutableProducts = [];
+    final db = await database;
+    // Query all products.
+    List<Map<String, dynamic>> products = await db.query('products');
+    List<Map<String, dynamic>> mutableProducts = [];
 
-  // For each product, also fetch associated colors and styles.
-  for (var product in products) {
-    var mutableProduct = Map<String, dynamic>.from(product);
-    int productID = mutableProduct['productID'] as int;
+    // For each product, also fetch associated colors and styles.
+    for (var product in products) {
+      var mutableProduct = Map<String, dynamic>.from(product);
+      int productID = mutableProduct['productID'] as int;
 
-    List<Map<String, dynamic>> colorResults = await db.query(
-      'product_colors',
-      columns: ['color'],
-      where: 'productID = ?',
-      whereArgs: [productID],
-    );
-    mutableProduct['colors'] =
-        colorResults.map((e) => e['color']?.toString() ?? '').toList();
-
-    List<Map<String, dynamic>> styleResults = await db.query(
-      'product_styles',
-      columns: ['style'],
-      where: 'productID = ?',
-      whereArgs: [productID],
-    );
-    mutableProduct['styles'] =
-        styleResults.map((e) => e['style']?.toString() ?? '').toList();
-
-    mutableProducts.add(mutableProduct);
-  }
-  return mutableProducts;
-}
-
-
- Future<List<Map<String, dynamic>>> getProductsByCategory(String category) async {
-  final db = await database;
-  // Query the products table.
-  List<Map<String, dynamic>> products = await db.query(
-    'products',
-    where: 'category = ?',
-    whereArgs: [category],
-  );
-  
-  // Create a new list to store mutable product maps.
-  List<Map<String, dynamic>> mutableProducts = [];
-  
-  // For each product, retrieve its colors and styles.
-  for (var product in products) {
-    // Create a mutable copy of the product map.
-    var mutableProduct = Map<String, dynamic>.from(product);
-    int productID = mutableProduct['productID'] as int;
-    
-    try {
       List<Map<String, dynamic>> colorResults = await db.query(
         'product_colors',
         columns: ['color'],
         where: 'productID = ?',
         whereArgs: [productID],
       );
-      print("Product $productID colors: $colorResults");
-      mutableProduct['colors'] = colorResults
-          .map((e) => e['color']?.toString() ?? '')
-          .toList();
-    } catch (e) {
-      print("Error fetching colors for product $productID: $e");
-      mutableProduct['colors'] = [];
-    }
-    
-    try {
+      mutableProduct['colors'] =
+          colorResults.map((e) => e['color']?.toString() ?? '').toList();
+
       List<Map<String, dynamic>> styleResults = await db.query(
         'product_styles',
         columns: ['style'],
         where: 'productID = ?',
         whereArgs: [productID],
       );
-      print("Product $productID styles: $styleResults");
-      mutableProduct['styles'] = styleResults
-          .map((e) => e['style']?.toString() ?? '')
-          .toList();
-    } catch (e) {
-      print("Error fetching styles for product $productID: $e");
-      mutableProduct['styles'] = [];
-    }
-    
-    mutableProducts.add(mutableProduct);
-  }
-  
-  return mutableProducts;
-}
+      mutableProduct['styles'] =
+          styleResults.map((e) => e['style']?.toString() ?? '').toList();
 
+      mutableProducts.add(mutableProduct);
+    }
+    return mutableProducts;
+  }
+
+  Future<List<Map<String, dynamic>>> getProductsByCategory(String category) async {
+    final db = await database;
+    // Query the products table.
+    List<Map<String, dynamic>> products = await db.query(
+      'products',
+      where: 'category = ?',
+      whereArgs: [category],
+    );
+
+    // Create a new list to store mutable product maps.
+    List<Map<String, dynamic>> mutableProducts = [];
+
+    // For each product, retrieve its colors and styles.
+    for (var product in products) {
+      var mutableProduct = Map<String, dynamic>.from(product);
+      int productID = mutableProduct['productID'] as int;
+
+      try {
+        List<Map<String, dynamic>> colorResults = await db.query(
+          'product_colors',
+          columns: ['color'],
+          where: 'productID = ?',
+          whereArgs: [productID],
+        );
+        mutableProduct['colors'] =
+            colorResults.map((e) => e['color']?.toString() ?? '').toList();
+      } catch (e) {
+        print("Error fetching colors for product $productID: $e");
+        mutableProduct['colors'] = [];
+      }
+
+      try {
+        List<Map<String, dynamic>> styleResults = await db.query(
+          'product_styles',
+          columns: ['style'],
+          where: 'productID = ?',
+          whereArgs: [productID],
+        );
+        mutableProduct['styles'] =
+            styleResults.map((e) => e['style']?.toString() ?? '').toList();
+      } catch (e) {
+        print("Error fetching styles for product $productID: $e");
+        mutableProduct['styles'] = [];
+      }
+
+      mutableProducts.add(mutableProduct);
+    }
+
+    return mutableProducts;
+  }
+
+  // New function to get sale products.
+  Future<List<Map<String, dynamic>>> getSaleProducts() async {
+    final db = await database;
+    // Query products where onSale equals 1.
+    List<Map<String, dynamic>> saleProducts = await db.query(
+      'products',
+      where: 'onSale = ?',
+      whereArgs: [1],
+    );
+    List<Map<String, dynamic>> mutableProducts = [];
+
+    // For each product, also fetch associated colors and styles.
+    for (var product in saleProducts) {
+      var mutableProduct = Map<String, dynamic>.from(product);
+      int productID = mutableProduct['productID'] as int;
+
+      List<Map<String, dynamic>> colorResults = await db.query(
+        'product_colors',
+        columns: ['color'],
+        where: 'productID = ?',
+        whereArgs: [productID],
+      );
+      mutableProduct['colors'] =
+          colorResults.map((e) => e['color']?.toString() ?? '').toList();
+
+      List<Map<String, dynamic>> styleResults = await db.query(
+        'product_styles',
+        columns: ['style'],
+        where: 'productID = ?',
+        whereArgs: [productID],
+      );
+      mutableProduct['styles'] =
+          styleResults.map((e) => e['style']?.toString() ?? '').toList();
+
+      mutableProducts.add(mutableProduct);
+    }
+    return mutableProducts;
+  }
 
   // Search products by name.
   Future<List<Map<String, dynamic>>> searchProducts(String query) async {
@@ -459,6 +491,162 @@ class DBHelper {
         'altText': 'Skinny Jeans',
         'onSale': 1,
         'salePrice': 10.00
+      },
+      {
+        'productID': 113,
+        'productName': 'Sleeveless Knit Top',
+        'productDesc': 'Gray sleeveless top in a comfy knit fabric.',
+        'productPrice': 25.00,
+        'category': 'Tops',
+        'image': 'assets/products/gray_knit_top.png',
+        'colors': ['Gray'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Gray Sleeveless Top',
+        'onSale': 1,
+        'salePrice': 20.00
+      },
+      {
+        'productID': 114,
+        'productName': 'Red Top',
+        'productDesc': 'Deep red boatneck top with short sleeves.',
+        'productPrice': 25.00,
+        'category': 'Tops',
+        'image': 'assets/products/red_top.png',
+        'colors': ['Red'],
+        'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Red Short Sleeve Top',
+        'onSale': 0,
+        'salePrice': 0.00
+      },
+      {
+        'productID': 115,
+        'productName': 'Black & White Striped Button-Down',
+        'productDesc': 'Classic black and white striped button-down shirt.',
+        'productPrice': 25.00,
+        'category': 'Tops',
+        'image': 'assets/products/bw_buttondown.png',
+        'colors': ['Black', 'White'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Black and White Striped Button-Down',
+        'onSale': 0,
+        'salePrice': 0.00
+      },
+      {
+        'productID': 116,
+        'productName': 'Plain White Tee',
+        'productDesc': 'Classic white t-shirt.',
+        'productPrice': 20.00,
+        'category': 'Tops',
+        'image': 'assets/products/plain_white_tee.png',
+        'colors': ['White'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Plain White T-shirt',
+        'onSale': 0,
+        'salePrice': 0.00
+      },
+      {
+        'productID': 117,
+        'productName': 'Boatneck Long Sleeve Top',
+        'productDesc': 'Dark gray boatneck top with long sleeves.',
+        'productPrice': 25.00,
+        'category': 'Tops',
+        'image': 'assets/products/longsleeve_boatneck_shirt.png',
+        'colors': ['Gray'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Dark Gray Long Sleeve Top',
+        'onSale': 1,
+        'salePrice': 15.00
+      },
+      {
+        'productID': 118,
+        'productName': 'Longsleeve Polo Shirt',
+        'productDesc': 'Maroon and blue striped longsleeve polo shirt.',
+        'productPrice': 25.00,
+        'category': 'Tops',
+        'image': 'assets/products/longsleeve_polo.png',
+        'colors': ['Red', 'Blue'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Maroon and Blue Striped Polo Shirt',
+        'onSale': 1,
+        'salePrice': 15.00
+      },
+      {
+        'productID': 119,
+        'productName': 'Pink Tweed Miniskirt',
+        'productDesc': 'Pink tweed miniskirt with a zipper in the back.',
+        'productPrice': 25.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/tweed_mini.png',
+        'colors': ['Pink'],
+        'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Tweed mini skirt in a light pink color',
+        'onSale': 1,
+        'salePrice': 20.00
+      },
+      {
+        'productID': 120,
+        'productName': 'Knit Midi Skirt',
+        'productDesc': 'Warm knit midi skirt in a dark brown color',
+        'productPrice': 30.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/knit_midi.png',
+        'colors': ['Brown'],
+        'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Knit midi skirt in a dark brown color',
+        'onSale': 1,
+        'salePrice': 25.00
+      },
+      {
+        'productID': 121,
+        'productName': 'Red Aline Skirt',
+        'productDesc': 'Red mid-length skirt with an A-line silhouette',
+        'productPrice': 25.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/red_aline.png',
+        'colors': ['Red'],
+        'styles': ['Casual', 'Business Casual', 'Going Out'],
+        'altText': 'Red A-line skirt',
+        'onSale': 0,
+        'salePrice': 0.00
+      },
+      {
+        'productID': 122,
+        'productName': 'Classic Black Pencil Skirt',
+        'productDesc': 'Classic black pencil skirt',
+        'productPrice': 25.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/black_pencil_skirt.png',
+        'colors': ['Black'],
+        'styles': ['Casual', 'Business Casual'],
+        'altText': 'Black mid-length pencil skirt',
+        'onSale': 0,
+        'salePrice': 0.00
+      },
+      {
+        'productID': 123,
+        'productName': 'Leather Mini Skirt',
+        'productDesc': 'Black leather mini skirt with a zipper in the back.',
+        'productPrice': 25.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/leather_mini.png',
+        'colors': ['Black'],
+        'styles': ['Casual','Going Out'],
+        'altText': 'Black leather mini skirt',
+        'onSale': 1,
+        'salePrice': 15.00
+      },
+      {
+        'productID': 124,
+        'productName': 'Brown Suede Skirt',
+        'productDesc': 'Long brown a-line skirt in a suede material.',
+        'productPrice': 30.00,
+        'category': 'Bottoms',
+        'image': 'assets/products/suede_skirt.png',
+        'colors': ['Brown'],
+        'styles': ['Casual','Going Out'],
+        'altText': 'Long brown skirt',
+        'onSale': 1,
+        'salePrice': 20.00
       },
     ];
 

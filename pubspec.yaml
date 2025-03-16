@@ -90,6 +90,22 @@ flutter:
     - assets/products/summer_dress.jpg
     - assets/products/teal_blouse.JPEG
     - assets/products/winter_coat.jpg
+    - assets/products/gray_knit_top.png
+    - assets/products/red_top.png
+    - assets/products/bw_buttondown.png
+    - assets/products/plain_white_tee.png
+    - assets/products/longsleeve_boatneck_shirt.png
+    - assets/products/longsleeve_polo.png
+    - assets/products/tweed_mini.png
+    - assets/products/knit_midi.png
+    - assets/products/red_aline.png
+    - assets/products/black_pencil_skirt.png
+    - assets/products/leather_mini.png
+    - assets/products/suede_skirt.png
+
+
+
+
     - assets/categories/tops.png
     - assets/categories/bottoms.png
     - assets/categories/outerwear.png
